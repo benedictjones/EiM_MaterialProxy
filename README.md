@@ -23,7 +23,7 @@ To run the model/code in this repository please set up the correct environment i
 
 1. Install the provided conda environment called **eim_env.yml**. This can also be accessed on https://anaconda.org/benedictjones/eim_env .
 
-    To install open a terminal in the root folder and run:
+    To install the environment, open a terminal in the root folder and run:
 
     ```conda env create -f eim_env.yml -n eim_env```
 
