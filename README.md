@@ -6,7 +6,7 @@ This supports the paper **Co-design of algorithms and nanomaterials for use as E
 
 ## System Requirements
 
-Development has taken place on a windows 10 based platform.
+Development has taken place on a windows 10 based platform.  
 The code has been run on the Windows Subsystem for Linux (WSL) and should work on Ubuntu; though these platforms are not regularily tested.
 
 For best performance:
