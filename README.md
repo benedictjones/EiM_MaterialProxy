@@ -21,19 +21,13 @@ Normal installation time will be around 5 minutes (depending on upload/download 
 ### Packages
 To run the model/code in this repository please set up the correct environment in one of two ways:
 
-1. Install the provided conda environment called **eim_env.yml**. This can also be accessed on https://anaconda.org/benedictjones/eim_env .
-
-    To install the environment, open a terminal in the root folder and run:
-
-    ```conda env create -f eim_env.yml -n eim_env```
-
-     To check the enviroment has installed correctly run:
-
-     ```conda env list```
-
-     To activae the new enviroment run:
-
-     ```conda activate eim_env```
+1. Install the provided conda environment called **eim_env.yml**. This can also be accessed on https://anaconda.org/benedictjones/eim_env .  
+To install the environment, open a terminal in the root folder and run:  
+```conda env create -f eim_env.yml -n eim_env```  
+ To check the enviroment has installed correctly run:  
+ ```conda env list```  
+ To activae the new enviroment run:  
+ ```conda activate eim_env```
     
 2. Install these packages (a full list of dependences is given in dependences.txt):
     - PySpice (must be a pip install)
@@ -45,8 +39,9 @@ To run the model/code in this repository please set up the correct environment i
 ### NGSpice
 For PySpice to work **NGSpice must also be installed**. A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location (for windows):
 
-  - For PySpice 1.4: Place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*. e.g. for conda enviroment eim_env: C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice
-  - For PySpice 1.3: Place Spice64 and Spice_dll in C:\Program Files
+  - For PySpice 1.4: Place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*.  
+    e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
+  - For PySpice 1.3: Place Spice64 and Spice_dll in *C:\Program Files*
 
 or on linux NGSpice is installed via the command line.
 (Full instructions for PySpice/NGSpice installation can be found at https://pyspice.fabrice-salvaire.fr/releases/v1.4/installation.html)
