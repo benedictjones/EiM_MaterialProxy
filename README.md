@@ -96,8 +96,8 @@ Depending on the speed of your processor and the number of cores used it may be 
 ### Loading a network
 When comparing the effect of different parameters or algorithm features, we should re use the same materials. This allows for a direct comparison.
 To do this we can set a target results file (which contains a saved network topology, produced when material re-use is not enabled).
-An example can be seen in demo3.py, this will run the DE on a previously saved netowrk topology.
-You can compare the produced default (unconfigured) network with the one saved in the target folder!
+An example can be seen in demo3.py, this will run the DE on a previously saved network topology.
+
 
 For 4 cores running at ~4.2Ghz the **execution time** is around 1 minute.
 Depending on the speed of your processor and the number of cores used it may be faster or slower.
@@ -105,10 +105,10 @@ Depending on the speed of your processor and the number of cores used it may be 
 ### Running an Experiment
 To compare the effect of varying different parameters on a material processor we can run an experiment, for example demo_exp.py. This saves the data differently then the single runs described above.
 
-In this example the effect using shuffle is examined, by testing its use (or not) on 3 different Diode Random Networks (DRN). There are 5 DE repetitions on each network.
+In this example the effect of using shuffle is examined, by testing its use (or not) on 3 different Diode Random Networks (DRN). There are 5 DE repetitions on each network.
 
-The graph outputs can be found in the Experiment_List folder under the correct data set (con2DDS be default).
-One run was performed as an example, and is stored in *Experiment_List/con2DDS/2020_06_17__13_59_18___EXP_Demo_Exp_D_RN*.
+The graph outputs and results can be found in the Experiment_List folder under the selected data set (in demo_exp.py this is currently con2DDS).
+One run has been performed as an example, and is stored in *Experiment_List/con2DDS/2020_06_17__13_59_18___EXP_Demo_Exp_D_RN*.
 
 For 4 cores running at ~4.2Ghz the **execution time** is around 1.3 hours.
 Depending on the speed of your processor and the number of cores used it may be faster or slower.
@@ -119,17 +119,17 @@ Depending on the speed of your processor and the number of cores used it may be 
 To examine any particular single run or experiment and produce plots from the saved data we can use anly_run.py.
 The target folder can be set to either:
 
-- A results folder (e.g *'Results/2020_06_17/__13_59_18__con2DDS__EXP_Demo_Exp_D_RN'*)
-- An experiment folder (e.g *'Experiment_List/con2DDS/2020_06_17__13_59_18___EXP_Demo_Exp_D_RN'*)
+- A results folder (e.g. *'Results/2020_06_17/__13_59_18__con2DDS__EXP_Demo_Exp_D_RN'*)
+- An experiment folder (e.g. *'Experiment_List/con2DDS/2020_06_17__13_59_18___EXP_Demo_Exp_D_RN'*)
 
 An example is given in anly_run_demo.py.
 
 ### Reading Paper Results
 To reproduce the plots used in the paper, execute anly_run_paper.py.
-This will generate and save the plots to a folder named *CustomSave/Paper*.
+This will generate and save the plots to a folder named *CustomSave/Paper* by loading the data that was generated from the original experiments.
 
 ## Recreating Paper Results
 To recreate the papers results, run exp_paper.py. This will use/load the same 10 RRN and DRN networks as was used to produce the papers results.
-The DE algorithm repeats itself 10 times on each of the networks, each run has 40 iterations.
+USing the selected dataset, the DE algorithm repeats itself 10 times on each of the networks, each run has 40 iterations/generations.
 This is repeated for the different algorithm feature combinations (shuffle, input and output weights).
 Depending on the speed of your processor and the number of cores used, the **execution time** may be up to **a week**.
