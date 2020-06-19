@@ -45,7 +45,7 @@ To run the model/code in this repository please set up the correct environment i
 ### NGSpice
 For PySpice to work **NGSpice must also be installed**. A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location (for windows):
 
-  - For PySpice 1.4: Place Spice64 and Spice_dll in C:\Users\user\anaconda3\Lib\site-packages\PySpice\Spice\NgSpice (or the site package of the selected enviroment e.g. for conda enviroment eim_env: C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice)
+  - For PySpice 1.4: Place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*. e.g. for conda enviroment eim_env: C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice
   - For PySpice 1.3: Place Spice64 and Spice_dll in C:\Program Files
 
 or on linux NGSpice is installed via the command line.
