@@ -1,0 +1,23 @@
+.title Five node B-source Resistor network
+Vinput1 1 0 -1.5346419V
+Vinput2 2 0 3.733V
+Vinput3 3 0 0.7765586999999999V
+Vinput4 4 0 3.741V
+R0 1 2 5.2449kOhm
+R1 1 3 7.9794kOhm
+R2 1 4 4.1447kOhm
+R3 1 5 1.211kOhm
+R4 1 6 4.8905kOhm
+R5 2 3 9.7083kOhm
+R6 2 4 0.3086kOhm
+R7 2 5 6.577kOhm
+R8 2 6 2.8484kOhm
+R9 3 4 3.4057kOhm
+R10 3 5 5.5289kOhm
+R11 3 6 9.2778kOhm
+R12 4 5 3.9362kOhm
+R13 4 6 8.3555kOhm
+R14 5 6 0.8242kOhm
+R16 5 0 10kOhm
+R17 6 0 10kOhm
+.model DefualtDiode D (BV=30V IBV=200uV IS=20uA N=1 RS=0.8mOhm)

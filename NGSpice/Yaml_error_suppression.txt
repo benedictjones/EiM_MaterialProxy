@@ -1,0 +1,5 @@
+This is a fix to stop Yaml displaying a warning when running PySpice.
+
+Go to C:\Users\...\Anaconda3\Lib\site-packages\PySpice\Logging\Logging.py
+
+edit to use yaml.safe_load() not yaml.load()

@@ -1,0 +1,47 @@
+Part of a series of experiments: 0 
+
+Number of loops = 6 
+  > Number of generated circuits = 3 
+  > Number of times the generated circuits where tested (num_repetitions) = 2 
+Iteratiosn per loop = 15 
+Population Size = 20 
+mut = 0.800000 
+crossp = 0.800000   (Note: perm_crossp_model=none) 
+num input nodes = 2 
+num configuration nodes = 2 
+num output nodes = 2 
+num output readings (i.e dimensions) = 1 
+Training Data used: 2DDS 
+  > Number of classes to optimise for: 2 
+  > All of data is being used for training 
+Using a shuffle gene = 0 
+Using output weightings = 0 
+Interpretation Scheme is:  pn_binary 
+Fitness Scheme is:  error 
+Value of output node shunt resistance = 10.000000 kOhm
+ 
+The Material netowk model used = D_RN 
+Where the Default diodes used? = 1 
+      Default diodes properties: IS=20@u_uA, RS=0.8@u_mOhm, BV=30@u_V, IBV=200@u_uV, N=1 
+Material Properties are: 
+  > Resistors randomly chosen between [0, 10] 
+
+Note: the saved data includes the initial population best fitness and genome 
+      So read outputs in chunks of 16
+ 
+Data Directory is: 
+Results/2020_03_23/__17_09_44__2DDS__D_RN
+ 
+A variable Vconfig material graph computation was carried out: 
+  Length x1 data = 41 
+  Length x2 data = 41 
+  Vconfig_1 considered = [-6 -3  0  3  6] 
+  Vconfig_2 considered = [-6 -3  0  3  6] 
+  Total number of chunks to split up = 25
+ 
+A variable Input permutation/organisation material graph computation was carried out: 
+  Length x1 data = 41 
+  Length x2 data = 41 
+  Total number of chunks to split up = 16
+ 
+Finished on 23_03_2020, at 17_32_07 

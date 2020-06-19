@@ -1,0 +1,97 @@
+.title Five node B-source Resistor network
+.subckt SubCir1 in out
+D1 mid in DefualtDiode
+R1 mid out 5.4093kOhm
+.ends SubCir1
+
+.subckt SubCir2 in out
+D1 mid in DefualtDiode
+R1 mid out 7.2822kOhm
+.ends SubCir2
+
+.subckt SubCir3 in out
+D1 mid out DefualtDiode
+R1 in mid 3.9562kOhm
+.ends SubCir3
+
+.subckt SubCir4 in out
+D1 mid in DefualtDiode
+R1 mid out 8.2497kOhm
+.ends SubCir4
+
+.subckt SubCir5 in out
+D1 mid in DefualtDiode
+R1 mid out 5.1184kOhm
+.ends SubCir5
+
+.subckt SubCir6 in out
+D1 mid in DefualtDiode
+R1 mid out 0.1212kOhm
+.ends SubCir6
+
+.subckt SubCir7 in out
+D1 mid out DefualtDiode
+R1 in mid 5.868kOhm
+.ends SubCir7
+
+.subckt SubCir8 in out
+D1 mid in DefualtDiode
+R1 mid out 6.3294kOhm
+.ends SubCir8
+
+.subckt SubCir9 in out
+D1 mid out DefualtDiode
+R1 in mid 0.2022kOhm
+.ends SubCir9
+
+.subckt SubCir10 in out
+D1 mid out DefualtDiode
+R1 in mid 2.3751kOhm
+.ends SubCir10
+
+.subckt SubCir11 in out
+D1 mid out DefualtDiode
+R1 in mid 4.1313kOhm
+.ends SubCir11
+
+.subckt SubCir12 in out
+D1 mid in DefualtDiode
+R1 mid out 8.4196kOhm
+.ends SubCir12
+
+.subckt SubCir13 in out
+D1 mid in DefualtDiode
+R1 mid out 5.667kOhm
+.ends SubCir13
+
+.subckt SubCir14 in out
+D1 mid out DefualtDiode
+R1 in mid 0.8067kOhm
+.ends SubCir14
+
+.subckt SubCir15 in out
+D1 mid in DefualtDiode
+R1 mid out 1.9091kOhm
+.ends SubCir15
+Vinput1 1 0 -3.76V
+Vinput2 2 0 2.5629V
+Vinput3 3 0 2.981V
+Vinput4 4 0 2.2803V
+X0 1 2 SubCir1
+X1 1 3 SubCir2
+X2 1 4 SubCir3
+X3 1 5 SubCir4
+X4 1 6 SubCir5
+X5 2 3 SubCir6
+X6 2 4 SubCir7
+X7 2 5 SubCir8
+X8 2 6 SubCir9
+X9 3 4 SubCir10
+X10 3 5 SubCir11
+X11 3 6 SubCir12
+X12 4 5 SubCir13
+X13 4 6 SubCir14
+X14 5 6 SubCir15
+R16 5 0 10kOhm
+R17 6 0 10kOhm
+.model DefualtDiode D (BV=30V IBV=200uV IS=20uA N=1 RS=0.8mOhm)
