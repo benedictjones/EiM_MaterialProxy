@@ -21,9 +21,13 @@ Normal installation time will be around 5 minutes (depending on upload/download 
 ### Packages
 To run the model/code in this repository please set up the correct environment in one of two ways:
 
-1. Install the provided conda environment called **eim_env.yml**. This can also be accessed on https://anaconda.org/benedictjones/eim_env . To install open a terminal in the root folder and run:
-
+1. Install the provided conda environment called **eim_env.yml**. This can also be accessed on https://anaconda.org/benedictjones/eim_env .
+To install open a terminal in the root folder and run:
 ```conda env create -f eim_env.yml -n eim_env```
+ To check the enviroment has installed correctly run:
+ ```conda env list```
+ To activae the new enviroment run:
+ ```conda activate eim_env```
     
 2. Install these packages (a full list of dependences is given in dependences.txt):
     - PySpice (must be a pip install)
