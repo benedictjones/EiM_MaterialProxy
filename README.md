@@ -6,9 +6,6 @@ This supports the paper **Co-design of algorithms and nanomaterials for use as E
 
 ## System Requirements
 
-A conda environment show the dependencies, and can be used to quickly set up the required python packages.
-This is found at: https://anaconda.org/benedictjones/eim_env
-
 Development has taken place on a windows 10 based platform.
 The code has been run on the Windows Subsystem for Linux (WSL) and should work on Ubuntu.
 
