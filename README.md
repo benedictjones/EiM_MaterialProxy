@@ -24,7 +24,7 @@ Normal installation time will be around 5 minutes (depending on upload/download 
 ### Packages
 To run the model/code in this repository please set up the correct environment in one of two ways:
 
-1. Install the provided conda environment called **eim_env.yml** (for windows). This can also be accessed on https://anaconda.org/benedictjones/eim_env .  
+1. Install the provided conda environment called **eim_env.yml** (for windows only). This can also be accessed on https://anaconda.org/benedictjones/eim_env .  
 To install the environment, open a terminal in the root folder and run:  
 ```conda env create -f eim_env.yml -n eim_env```  
  To check the enviroment has installed correctly run:  
