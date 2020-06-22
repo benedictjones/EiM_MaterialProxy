@@ -51,7 +51,8 @@ For PySpice 1.4 (the current release) place Spice64 and Spice_dll in the PySpice
 Note: For the older version of PySpice 1.3, place Spice64 and Spice_dll in *C:\Program Files*.
 
 #### Linux
-On linux NGSpice is installed via the command line, using:  
+On linux NGSpice is installed via the command line.
+For Ubuntu) use:  
 ```sudo apt-get install -y ngspice```
 
 
