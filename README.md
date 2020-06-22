@@ -49,21 +49,13 @@ Note: this code has been developed using NGSpice 31.
 #### Windows
 A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be **placed in the appropriate location**.  
 For PySpice 1.4 (the current release) place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*.  
-> e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
+    e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
   
 Note: For the older version of PySpice 1.3, place Spice64 and Spice_dll in *C:\Program Files*.
 
 #### Linux
 On linux NGSpice is installed via the command line.  
-For Ubuntu use:    
-```sudo apt-get install -y ngspice```
-
-
-### Animations
-**Animations** can be produced to show how the best member of the population evolves etc.
-By default this is **not enabled**.
-To enable install ImageMagick (https://imagemagick.org/script/download.php). Specifically ffmpeg is used to save an animation.
-Then navigate to line 31 in Analysis.py and uncomment #Animation.__init__(self)
+For Ubuntu use: ```sudo apt-get install -y ngspice```
 
 
 ## Demo
