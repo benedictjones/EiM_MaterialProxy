@@ -2,8 +2,6 @@
 Public release of EiM model which integrates NGSpice with Python via PySpice.
 This supports the paper **Co-design of algorithms and nanomaterials for use as Evolvable Processors**.
 
-
-
 ## System Requirements
 
 Development has taken place on a windows 10 based platform.  
@@ -12,7 +10,6 @@ The code has been run on the Windows Subsystem for Linux (WSL) and should work o
 For best performance:
   - Use 8GB of RAM or more
   - A CPU with multiple cores (the number of cores to be used can be selected)
-
 
 ## Instillation
 
@@ -75,7 +72,6 @@ You can also toggle the settings such that further plots are produced for (incre
 - The effect of varying input weights (set MG_vary_InWeight=1)
 - The effect of varying output weights (set MG_vary_OutWeight=1)
 
-
 These results are saved. They can be found by navigating the results folder to the appropriate date and time, where results can be observed.
 (Note: This pathway can be used in anly_run.py to re-produce plots from the saved data)
 
@@ -107,7 +103,6 @@ When comparing the effect of different parameters or algorithm features, we shou
 To do this we can set a target results file (which contains a saved network topology, produced when material re-use is not enabled).
 An example can be seen in demo3.py, this will run the DE on a previously saved network topology.
 
-
 For 4 cores running at ~4.2Ghz the **execution time** is around 1 minute.
 Depending on the speed of your processor and the number of cores used it may be faster or slower.
 
@@ -121,6 +116,7 @@ One run has been performed as an example, and is stored in *Experiment_List/con2
 
 For 4 cores running at ~4.2Ghz the **execution time** is around 1.3 hours.
 Depending on the speed of your processor and the number of cores used it may be faster or slower.
+
 
 ## Analysis
 
