@@ -40,21 +40,25 @@ To install the environment, open a terminal in the root folder and run:
     - tables
 
 ### NGSpice
-For PySpice to work **NGSpice must also be installed**. A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location (for windows): for PySpice (1.4) place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*.  
-    e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
-  
-
-or on linux NGSpice is installed via the command line.
+For PySpice to work **NGSpice must also be installed**.  
 (Full instructions for PySpice/NGSpice installation can be found at https://pyspice.fabrice-salvaire.fr/releases/v1.4/installation.html)
 
-Note: For the older version of PySpice 1.3: Place Spice64 and Spice_dll in *C:\Program Files*.
+#### Windows
+A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location.  
+For PySpice 1.4 place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*.  
+    e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
+  
+Note: For the older version of PySpice 1.3, place Spice64 and Spice_dll in *C:\Program Files*.
+
+#### Linux
+On linux NGSpice is installed via the command line.
+
 
 ### Animations
 **Animations** can be produced to show how the best member of the population evolves etc.
 By default this is **not enabled**.
 To enable install ImageMagick (https://imagemagick.org/script/download.php). Specifically ffmpeg is used to save an animation.
 Then navigate to line 31 in Analysis.py and uncomment #Animation.__init__(self)
-
 
 
 ## Demo
