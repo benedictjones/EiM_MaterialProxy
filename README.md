@@ -41,7 +41,8 @@ To install the environment, open a terminal in the root folder and run:
 
 ### NGSpice
 For PySpice to work **NGSpice must also be installed**.  
-(Full instructions for PySpice/NGSpice installation can be found at https://pyspice.fabrice-salvaire.fr/releases/v1.4/installation.html)
+(Full instructions for PySpice/NGSpice installation can be found at https://pyspice.fabrice-salvaire.fr/releases/v1.4/installation.html)  
+Note: this code has been developed using NGSpice 31.
 
 #### Windows
 A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location.  
