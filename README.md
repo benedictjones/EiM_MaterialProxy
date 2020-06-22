@@ -40,14 +40,14 @@ To install the environment, open a terminal in the root folder and run:
     - tables
 
 ### NGSpice
-For PySpice to work **NGSpice must also be installed**. A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location (for windows):
-
-  - For PySpice 1.4: Place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*.  
+For PySpice to work **NGSpice must also be installed**. A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location (for windows): for PySpice (1.4) place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*.  
     e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
-  - For PySpice 1.3: Place Spice64 and Spice_dll in *C:\Program Files*
+  
 
 or on linux NGSpice is installed via the command line.
 (Full instructions for PySpice/NGSpice installation can be found at https://pyspice.fabrice-salvaire.fr/releases/v1.4/installation.html)
+
+Note: For the older version of PySpice 1.3: Place Spice64 and Spice_dll in *C:\Program Files*.
 
 ### Animations
 **Animations** can be produced to show how the best member of the population evolves etc.
