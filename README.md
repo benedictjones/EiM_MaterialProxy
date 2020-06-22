@@ -17,7 +17,7 @@ For best performance:
 ## Instillation
 
 Please **download or git clone the repository**.  
-Following this, ensure that the correct packages and NGSpice is installed.
+Following this, ensure that the correct packages and NGSpice are installed.
 
 Normal installation time will be around 5 minutes (depending on upload/download speed).
 
