@@ -21,7 +21,7 @@ Following this, ensure that the correct packages and NGSpice are installed.
 
 Normal installation time will be around 5 minutes (depending on upload/download speed).
 
-### Packages
+### Step 1 - Packages
 To run the model/code in this repository please set up the correct environment in one of two ways:
 
 1. Install these packages (a full list of dependences is given in dependences.txt):
@@ -39,7 +39,7 @@ To install the environment, open a terminal in the root folder and run:
  To activae the new enviroment run:  
  ```conda activate eim_env```
 
-### NGSpice
+### Step 2 - NGSpice
 For PySpice to work **NGSpice must also be installed**.  
 (Full instructions for PySpice/NGSpice installation can be found at https://pyspice.fabrice-salvaire.fr/releases/v1.4/installation.html)  
 Note: this code has been developed using NGSpice 31.
