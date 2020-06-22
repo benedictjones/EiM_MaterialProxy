@@ -22,7 +22,7 @@ Following this, ensure that the correct packages and NGSpice are installed.
 Normal installation time will be around 5 minutes (depending on upload/download speed).
 
 ### Step 1 - Packages
-To run the model/code in this repository please set up the correct environment in one of two ways:
+To run the model/code in this repository please install the correct modules in one of two ways:
 
 1. Install these packages (a full list of dependences is given in dependences.txt):
     - PySpice (must be a pip install)
@@ -30,6 +30,8 @@ To run the model/code in this repository please set up the correct environment i
     - tqdm
     - pandas
     - tables
+    
+    (You may need to upgrade previous versions, e.g. ```run pip install --upgrade --force-reinstall h5py```)
     
 2. Install the provided conda environment called **eim_env.yml** (for windows only). This can also be accessed on https://anaconda.org/benedictjones/eim_env .  
 To install the environment, open a terminal in the root folder and run:  
@@ -45,15 +47,15 @@ For PySpice to work **NGSpice must also be installed**.
 Note: this code has been developed using NGSpice 31.
 
 #### Windows
-A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location.  
+A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be **placed in the appropriate location**.  
 For PySpice 1.4 (the current release) place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*.  
-    e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
+> e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
   
 Note: For the older version of PySpice 1.3, place Spice64 and Spice_dll in *C:\Program Files*.
 
 #### Linux
-On linux NGSpice is installed via the command line.
-For Ubuntu use:  
+On linux NGSpice is installed via the command line.  
+For Ubuntu use:    
 ```sudo apt-get install -y ngspice```
 
 
