@@ -27,6 +27,7 @@ To run the model/code in this repository please set up the correct environment i
 1. Install these packages (a full list of dependences is given in dependences.txt):
     - PySpice (must be a pip install)
     - h5py
+    - hdf5
     - tqdm
     - pandas
     - tables
