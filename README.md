@@ -22,7 +22,7 @@ Following this, ensure that the correct packages and NGSpice are installed.
 Normal installation time will be around 5 minutes (depending on upload/download speed).
 
 ### Step 1 - Packages
-To run the model/code in this repository please install the correct modules in one of two ways:
+To run the model/code in this repository please **install the correct modules** in **one of two ways**:
 
 1. Install these packages (a full list of dependences is given in dependences.txt):
     - PySpice (must be a pip install)
