@@ -1,2 +1,0 @@
-This is the run which generated 10 random RRN circuits or 'materials'.
-This file is referenced  as the target re_use, so the same circuits are used in later experiment runs.

@@ -1,0 +1,140 @@
+# variable params
+SaveDir : bin/
+ReUse_dir : na
+algorithm : EiM
+num_processors : 2
+
+num_circuits : 1
+num_repetitions : 1
+
+
+DE:
+  mut : 0.8
+  crossp : 0.8
+  popsize : 20
+  its : 30
+  training_data : con2DDS # 2DDS, O2DDS, con2DDS, MMDS, wine, iris, orth
+
+  IntpScheme : pn_binary  # pn_binary, band_binary, band, HOW, clustering, Ridge, RidgeHOW
+  FitScheme : error  # error, BinCrossEntropy, PCAH
+
+  BreakOnZeroFit : 1
+  TestVerify : 1  # use training & test dataset
+
+  # Set whether to save data with extra attribute, and to plot
+  Add_Attribute_To_Data : 0
+  PlotExtraAttribute : 0
+  UseCustom_NewAttributeData : 0
+  NewAttrDataDir : na
+
+  num_readout_nodes : 1  # 'na' used when the Vout are used directly, normally 1 for most schemes
+  readout_scheme : none  # none, sigmoid, sigmoid_scale
+
+  save_fitvit : 1  # save the fitness vs itteration graphs
+
+network:
+  model : D_RN  # R_RN, D_RN, NL_RN
+  num_input : 2
+  num_output : 2
+  num_config : 2
+
+
+
+genome:
+  shuffle_gene : 1
+  perm_crossp_model : none  # none, linear, box, quad, unity
+
+  InWeight_gene : 1
+  InWeight_sheme : random  # random, AddSub
+  MaxInputWeight : 1
+
+  OutWeight_gene : 1
+  OutWeight_scheme : random  # random, AddSub
+  MaxOutputWeight : 2
+
+  PulseWidth_gene : 0
+  MinPulseWidth : 0.1  # ms
+  MaxPulseWidth : 100 # ms
+
+  BandNumber_gene : 0
+  max_number_bands : defualt  # defualt makes NumBands=NumClasses
+  BandClass_gene : 0
+  BandEdge_gene : 0
+  BandWidth_gene : 0
+  BandEdge_lims : 0
+
+  HOWperm_gene : 0
+
+
+
+spice:
+  Vmin : -5
+  Vmax : 5
+
+  max_r : 10  # in kOhms
+  min_r : 0.1 # in kOhms
+  R_array_in : 'na'
+    # for 5 node
+      # R = [5, 1, 10, 3, 0.1, 1, 2, 0.7, 1.5, 4]
+    # for 6 node
+      # R = [5, 1, 10, 3, 0.1, 1, 2, 0.7, 0.5, 6.3, 31.8, 10, 1000, 1000, 1000]  # in kOhm
+      # R = [5,7.7,4.8,3.2,2,1.5,8.1,1.5,6.7,4.6,7.5,0.9,1,4.5,2.2]
+
+
+  shunt_R : 10  # kOhm
+  contact_Res : 200  # Ohm
+
+  rand_dir : 1  # diode random direction toggle
+  defualt_diode_dir : 1
+  DefualtDiode : 1
+
+  material_a_min : 10  # nano, John 33
+  material_a_max : 1000  # nano, John 170
+  material_b_min : 10  # nano, John 280
+  material_b_max : 1000  # nano, John 960
+  a_mean : 0
+  a_var : 1
+  b_mean : 0
+  b_var : 1
+  cov : 0
+
+  parallelC : 0  # add parallel capacitors between nodes
+  ParallelCapLim : [0.1, 10]  # in uF
+  shuntC : 0
+  ShuntCapLim : [0.1, 10] # in uF
+
+  sim_type : sim_dc  # sim_dc, sim_trans_pulse, sim_trans_wave
+  pulse_Tp : 100
+  pulse_TT : 4.5e-3
+  trans_t_unit : 'm'
+  rloc : 0.75  # percentage time though the pulse that the Vout are read
+
+  NN_max_r : 1000  # in kOhms
+
+  num_layers : 1  # if more then one layer is used
+  NodesPerLayer : 3
+  ConfigPerLayer : 1
+
+mg:
+  plotMG : 1
+  plot_defualt : 1
+  MG_vary_Vconfig : 1
+  MG_vary_PermConfig : 1
+  MG_vary_InWeight : 1
+  MG_vary_OutWeight : 1
+
+  MG_animation : 0  # evolution ani
+  MG_VaryInWeightsAni : 0
+  MG_VaryOutWeightsAni : 0
+  MG_VaryLargeInWeightsAni : 0
+  MG_VaryLargeOutWeightsAni : 0
+
+
+
+
+
+
+
+
+
+ # fin

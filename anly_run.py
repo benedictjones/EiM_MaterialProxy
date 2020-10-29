@@ -1,4 +1,4 @@
-from Module_Analysis.Analysis import analysis
+from mod_analysis.Analysis import analysis
 
 """
 Load data saved from previous code executions.
@@ -7,11 +7,11 @@ Load data saved from previous code executions.
 
 # Select a target folder, e.g.
 target = 'Experiment_List/con2DDS/2020_06_17__13_59_18___EXP_Demo_Exp_D_RN'
-target = 'Results/2020_06_17/__13_59_18__con2DDS__EXP_Demo_Exp_D_RN'
+target = 'Results/2020_10_29/__13_38_58__con2DDS__D_RN__EiM'
 
 # create object
-obj_a = analysis(target, save_loc='Test', format='pdf')  # dir_NameList=FilePAram,
-save = 0
+obj_a = analysis(target, save_loc='Test', format='png')  # dir_NameList=FilePAram,
+save = 1
 
 # Plot graphs to do with fitness convergence etc.
 obj_a.Plt_basic(sel_dict='na', Save_NotShow=save, show=1, fill=1, ExpErrors=1,
@@ -28,7 +28,7 @@ obj_a.Plt_mg(Save_NotShow=save,
              #
              Specific_Cir_Rep=[0,0],
              #
-             titles='off')
+             titles='on')
 
 #
 

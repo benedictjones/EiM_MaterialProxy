@@ -1,1 +1,0 @@
-Mean Train Fit = 0.500, Best Train Fit = 0.500, Std Train Fit = 0.000 | Mean Veri Fit = 0.500, Best Veri Fit = 0.500, Std Veri Fit = 0.000 

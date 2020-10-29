@@ -1,8 +1,8 @@
 from datetime import datetime
 import os
 
-from DE import RunDE
-from Module_Analysis.Analysis import analysis
+from runEiM import RunEiM
+from mod_analysis.Analysis import analysis
 
 
 
@@ -89,26 +89,26 @@ if __name__ == "__main__":
             print("Experiment", ex_loop, "Out of:", num_experiments-1)
             print("##################################################")
 
-            dir = RunDE(exp_num_circuits=10, exp_num_repetitions=10,
-                        experiment=1, exp_name=Exp_name,
-                        experiment_file=experiment_file, experiment_loop=ex_loop,
-                        #
-                        exp_its=40, exp_popsize=20,
-                        exp_the_model=Model,
-                        exp_num_input=num_inputs, exp_num_output=2, exp_num_config=3,
-                        #
-                        plotMG=0, MG_vary_Vconfig=0, MG_vary_PermConfig=0,  # plot MG graphs?
-                        #
-                        exp_shuffle_gene=Param_shuffle[ex_loop], exp_perm_crossp_model='none',
-                        exp_InWeight_gene=Param_IW[ex_loop], exp_InWeight_sheme='random',
-                        exp_OutWeight_gene=Param_OW[ex_loop], exp_OutWeight_scheme='random',
-                        #
-                        exp_training_data=training_data,
-                        exp_ReUse_Circuits=1, exp_ReUse_dir=ReUse_dir,  # makes susequent experimets use same material models
-                        exp_TestVerify=1,  # USe verification of trained network
-                        #
-                        exp_num_processors='max'  # Number of cores to be used
-                        )
+            dir = RunEiM(num_circuits=10, num_repetitions=10,
+                         experiment=1, exp_name=Exp_name,
+                         experiment_file=experiment_file, experiment_loop=ex_loop,
+                         #
+                         its=40, popsize=20,
+                         the_model=Model,
+                         num_input=num_inputs, num_output=2, num_config=3,
+                         #
+                         plotMG=0, MG_vary_Vconfig=0, MG_vary_PermConfig=0,  # plot MG graphs?
+                         #
+                         shuffle_gene=Param_shuffle[ex_loop], perm_crossp_model='none',
+                         InWeight_gene=Param_IW[ex_loop], InWeight_sheme='random',
+                         OutWeight_gene=Param_OW[ex_loop], OutWeight_scheme='random',
+                         #
+                         training_data=training_data,
+                         ReUse_Circuits=1, ReUse_dir=ReUse_dir,  # makes susequent experimets use same material models
+                         TestVerify=1,  # USe verification of trained network
+                         #
+                         num_processors='max'  # Number of cores to be used
+                         )
 
             # Save list of directories used for Analysis, append each exp-loop
             if ex_loop == 0:
