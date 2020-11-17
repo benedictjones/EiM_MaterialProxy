@@ -4,6 +4,8 @@ import time
 import os
 import h5py
 
+import sys
+
 from random import random
 from multiprocessing import Pool
 from functools import partial
@@ -13,6 +15,8 @@ from mod_settings.Set_Load import LoadSettings
 from mod_material.spice.GenerateRN import generate_random_netork
 from mod_material.spice.Network_LoadRun import LoadRun_model
 from mod_material.spice.GenerateNN import generate_neuromorphic_netork
+
+from mod_analysis.Set_Load_meta import LoadMetaData
 
 from mod_load.LoadData import Load_Data
 
@@ -62,12 +66,19 @@ class material_processor(object):
             self.ModelDir = self.CompiledDict['SaveDir']
 
         # If the material exists, don't re-create
-        dir_path = "%s/MD_CircuitTop/Network_Topology__Cir_%d.txt" % (self.ModelDir, cir)
+        dir_path = "%s/MD_CircuitTop/Network_Topology_%s_Cir_%d.txt" % (self.ModelDir, str(self.CompiledDict['param_file']), cir)
         if os.path.exists(dir_path) is True:
             #print(">> Material Model Path found <<")
+            meta = LoadMetaData(self.ModelDir, param_file=str(self.CompiledDict['param_file']))
+            load_num_in_nodes = meta['network']['num_input'] + meta['network']['num_config']
+            num_in_nodes = self.NetworkDict['num_input'] + self.NetworkDict['num_config']
+            #print("\n>>>>>", load_num_in_nodes, num_in_nodes)
+            #print(">>>>>>> Selected Material had %d in nodes, current settings ask for %d in nodes!" % (load_num_in_nodes, num_in_nodes))
+            if num_in_nodes != load_num_in_nodes:
+                raise ValueError("Selected Material had %d in nodes, current settings ask for %d in nodes!" % (load_num_in_nodes, num_in_nodes))
             return
         elif os.path.exists(dir_path) is False and self.CompiledDict['ReUse_dir'] != 'na':
-            raise ValueError("Selected ReUse Dir does not exist")
+            raise ValueError("Selected ReUse Dir does not exist:\n > %s" % (dir_path))
 
         # if the load only toggle is on, then return only
         # (i.e never gen a new material)
@@ -97,21 +108,45 @@ class material_processor(object):
             'both' - returns unzipped & defualt
         """
 
-        # calc outputs for each genome using multiprocessing
-        if self.CompiledDict['num_processors'] == 1:
-            results_GenomeList = []
-            for genome in genome_list:
-                results = self.solve_processor(genome, cir, rep, the_data, input_data, output_data)
-                results_GenomeList.append(results)
-        else:
-            if self.CompiledDict['num_processors'] == 'auto':
-                with Pool() as pool:
-                    func = partial(self.solve_processor, cir=cir, rep=rep, the_data=the_data, input_data=input_data, output_data=output_data)
-                    results_GenomeList = pool.map(func, genome_list)
+        #print("genome_list:\n", genome_list)
+
+        # # if we are using a DC/op simulation, just do all genomes in one
+        # instance of NGSpice - this can be faster
+        use_MP = 1
+        if self.SpiceDict['sim_type'] == 'sim_dc' and genome_list.shape[0] > 1 and sys.platform == "win32":
+            # Hope was this would stop the memory leak - doesn't seem to
+
+            if str(input_data) == 'na':
+                data_X, nn = Load_Data(the_data, self.CompiledDict)
             else:
-                with Pool(processes=self.CompiledDict['num_processors']) as pool:
-                    func = partial(self.solve_processor, cir=cir, rep=rep, the_data=the_data, input_data=input_data, output_data=output_data)
-                    results_GenomeList = pool.map(func, genome_list)
+                data_X = input_data
+
+            # # Windows Anaconda based Shared NGSpice usages seems to have a
+            # string limit or some sort on the input of a pwl.
+            # >> Is the data size is bigger then aprox 20000 then the spice will
+            # just exit. Not yet sure why.
+            approx_num_inst = len(data_X[:,0])*genome_list.shape[0]
+            if approx_num_inst < 20000:
+                results_GenomeList = self._solve_all_processors_(genome_list, cir, rep, the_data, input_data, output_data)
+                use_MP = 0
+
+
+        # # calc outputs for each genome using multiprocessing
+        if use_MP == 1:
+            if self.CompiledDict['num_processors'] == 1:
+                results_GenomeList = []
+                for genome in genome_list:
+                    results = self.solve_processor(genome, cir, rep, the_data, input_data, output_data)
+                    results_GenomeList.append(results)
+            else:
+                if self.CompiledDict['num_processors'] == 'auto':
+                    with Pool() as pool:
+                        func = partial(self.solve_processor, cir=cir, rep=rep, the_data=the_data, input_data=input_data, output_data=output_data)
+                        results_GenomeList = pool.map(func, genome_list)
+                else:
+                    with Pool(processes=self.CompiledDict['num_processors']) as pool:
+                        func = partial(self.solve_processor, cir=cir, rep=rep, the_data=the_data, input_data=input_data, output_data=output_data)
+                        results_GenomeList = pool.map(func, genome_list)
 
         # Change the structure of the outputs
         if ret_str == 'unzip':
@@ -155,6 +190,7 @@ class material_processor(object):
         """
 
         # print(">>", input_data, output_data)
+        #print("genome:\n", genome)
 
         # #  Load the training data
         if str(input_data) == 'na':
@@ -162,6 +198,18 @@ class material_processor(object):
         else:
             data_X = input_data
             data_Y = output_data
+
+        """
+        if len(np.shape(data_X)) == 1:
+            data_X = np.reshape(data_X, (len(data_X), 1))
+        """
+
+        # # Check data dimension against physical number of inputs
+        # print(">>", self.CompiledDict['network']['num_input'], data_X.shape)
+        if len(data_X[0, :]) != self.CompiledDict['network']['num_input']:
+            raise ValueError("\nParam File: %s\nUsing %d input data nodes --> for %d input attributes!" % (self.CompiledDict['param_file'], self.CompiledDict['network']['num_input'], len(data_X[0,:])))
+
+
 
         # # load target array
         if the_data == 'train' or the_data == 'veri':
@@ -187,7 +235,7 @@ class material_processor(object):
 
     #
 
-    def _solve_material_(self, genome, data_X, cir, the_data='train'):
+    def _solve_material_(self, genome, data_X, cir, the_data='train', multi_solve=0):
         """
         This Formats the input data and genome characterisitcs such that the
         correct input voltages are applied to the selected nodes.
@@ -195,7 +243,14 @@ class material_processor(object):
 
         # # Iterate over all training data to retrieve re-ordered &/or modified voltage inputs
         seq_len = self.NetworkDict['num_config'] + self.NetworkDict['num_input']
-        Vin_matrix = self._get_voltages_(data_X, genome, self.GenomeDict, seq_len)
+
+        if multi_solve == 1:
+            # concatenate the genome Vin so only one instance of NGSpice is called
+            # here genome = passed in genome array
+            Vin_matrix = self._get_multi_geneome_voltages_(data_X, genome, self.GenomeDict, seq_len)
+        else:
+            # for a single genome
+            Vin_matrix = self._get_voltages_(data_X, genome, self.GenomeDict, seq_len)
 
         # print(Vin_matrix)
         # print("genome:", genome)
@@ -237,6 +292,8 @@ class material_processor(object):
         Applies weights to the input voltages, appends the config voltages, and
         reorders the columns acording to the shuffle index.
         """
+
+        #print("genome:", genome, " shape", genome.shape)
 
         # if X is a 1d array, make it into a 2d array
         if len(np.shape(X)) == 1:
@@ -290,8 +347,91 @@ class material_processor(object):
             new_matrix[:, new_idx] = matrix[:, old_idx]
         return new_matrix
 
+    #
 
+    #
 
+    #
+
+    def _solve_all_processors_(self, genome_list, cir, rep, the_data, input_data, output_data):
+        """
+        Very similar to solve_processor() function, execpt it generates a
+        concatinated array of the input voltages, and performs the SPICE
+        computation on all the inpouts at once.
+        This can only work for inputs that are not dependent on one anouther
+        i.e. DC sweep or operational point (Not transient!!).
+
+        """
+
+        # print(">>", input_data, output_data)
+        #print("genome list shape:", genome_list.shape)
+
+        # #  Load the training data
+        if str(input_data) == 'na':
+            data_X, data_Y = Load_Data(the_data, self.CompiledDict)
+        else:
+            data_X = input_data
+            data_Y = output_data
+
+        # # Check data dimension against physical number of inputs
+        # print(">>", self.CompiledDict['network']['num_input'], len(data_X[0, :]))
+        if len(data_X[0, :]) != self.CompiledDict['network']['num_input']:
+            raise ValueError("\nParam File: %s\nUsing %d input data nodes --> for %d input attributes!" % (self.self.CompiledDict['param_file'], self.CompiledDict['network']['num_input'], len(data_X[0,:])))
+
+        # # load target array
+        if the_data == 'train' or the_data == 'veri':
+
+            if str(output_data) == 'input' or self.CompiledDict['DE']['IntpScheme'] == 'Ridged_fit':
+                data_Y, nn = Load_Data(the_data, self.CompiledDict)
+            elif str(output_data) == 'na':
+                nn, data_Y = Load_Data(the_data, self.CompiledDict)
+            else:
+                data_Y = output_data
+
+        # Calc material output voltages
+        Vout_all = self._solve_material_(genome_list, data_X, cir=cir, the_data=the_data, multi_solve=1)
+
+        # split up the Voutput into the correct chunks
+        shaped_Vout_all = np.reshape(Vout_all, (genome_list.shape[0], data_X.shape[0], self.NetworkDict['num_output']))
+
+        # error check - generate the output for the first genome
+        Vout = self._solve_material_(genome_list[0], data_X, cir=cir, the_data=the_data)
+
+        # # compare first Vout array, to check it is correct
+        if np.array_equal(np.around(shaped_Vout_all[0], 2), np.around(Vout, 2)) != True:
+            raise ValueError("Voltages Incorrectly calculated.\nSim_Dc speed up failed!")
+
+        # Using the interp schem object, calc output class, responce, etc.
+        # for each genome
+        results_GenomeList = []
+        for idx, genome in enumerate(genome_list):
+            results = self.interp.run(shaped_Vout_all[idx], genome, data_Y, the_data, cir, rep)
+            results_GenomeList.append(results)
+
+        return results_GenomeList
+
+    #
+
+    #
+
+    def _get_multi_geneome_voltages_(self, data_X, genome_array, GenomeDict, seq_len):
+        """
+        Taked in the genome list/array and created the appropriate Voltage
+        inputs. These are concatenated together into one large array.
+        """
+
+        Vin_list = []
+
+        # # fetch the input voltages for each genome
+        for genome in genome_array:
+
+            # # Iterate over all training data to retrieve re-ordered &/or modified voltage inputs
+            Vin = self._get_voltages_(data_X, genome, self.GenomeDict, seq_len)
+            Vin_list.append(Vin)
+
+        Vin_matrix = np.concatenate(Vin_list)
+
+        return Vin_matrix
 
 
 

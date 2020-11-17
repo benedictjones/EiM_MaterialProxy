@@ -97,6 +97,9 @@ class material_graphs(object):
         #basic_cols = ['#009cff', '#ffffff','#ff8800']  # pastal orange/white/blue
         basic_cols = ['#009cff', '#6d55ff', '#ffffff', '#ff6d55','#ff8800']  # pastal orange/red/white/purle/blue
 
+        self.my_cmap = LinearSegmentedColormap.from_list('mycmap', basic_cols)
+        #self.my_cmap = 'jet'
+
         self.fps = 10
 
         # # create dir list to look at
@@ -129,14 +132,16 @@ class material_graphs(object):
                 self.class_cp = 1  # allows colour bars to change if there it is only plotting the class
                 self.max_colour_val = self.GenomeDict['max_class_value']
                 self.min_colour_val = self.GenomeDict['min_class_value']
-                self.my_cmap = LinearSegmentedColormap.from_list('mycmap', basic_cols)
+
+
+            elif self.ParamDict['IntpScheme'] == 'thresh_binary':
+                self.max_colour_val = self.ParamDict['threshold']+0.2
+                self.min_colour_val = self.ParamDict['threshold']-0.2
+                self.class_cp = 0
             else:
                 val = 0.2  # 0.2
                 self.max_colour_val = val
                 self.min_colour_val = -val
-                # basic_cols=['#0000ff', '#000000', '#ff0000']
-                self.my_cmap = LinearSegmentedColormap.from_list('mycmap', basic_cols)
-                self.my_cmap.set_bad(color='#ffff00')
                 self.class_cp = 0
 
             if len(Specific_Cir_Rep) != 2:
@@ -180,8 +185,8 @@ class material_graphs(object):
                     threshold = np.array(hdf.get('/%d_rep%d/DE_data/OutputLayer_threshold' % (cir, rep)))
                     #print(">>>> plt_mg, threshold", threshold)
                     if np.isnan(threshold) == False:
-                        self.max_colour_val = threshold + 1
-                        self.min_colour_val = threshold - 1
+                        self.max_colour_val = threshold + 0.2
+                        self.min_colour_val = threshold - 0.2
                         self.class_cp == 0
 
                     self.curr_dir = curr_dir
@@ -192,6 +197,9 @@ class material_graphs(object):
                     self.plt_defualt(hdf, MG, MG_items, Dgeno, cir, rep)
 
                     self.plt_VaryConfig(hdf, MG, MG_items, VC, cir, rep)
+                    for o in range(self.NetworkDict['num_output']):
+                        self.plt_VaryConfig(hdf, MG, MG_items, VC, cir, rep, splt='op%d' % (o+1))
+
                     self.plt_VaryConfigOp(hdf, MG, MG_items, VC, cir, rep)
 
                     self.plt_VaryPerm(hdf, MG, MG_items, VP, cir, rep)
@@ -381,17 +389,18 @@ class material_graphs(object):
             vMAX = 2
             vMIN = -2
         else:
-            vMAX = self.max_colour_val
-            vMIN = self.min_colour_val
+            vMAX = np.max(op_list)
+            vMIN = np.min(op_list)
 
         if self.class_cp == 1:
             plt_title = 'Class'
-            op_graph_vMAX = 0.5
-            op_graph_vMIN = -0.5
+            #op_graph_vMAX = self.max_colour_val
+            #op_graph_vMIN = self.min_colour_val
         elif self.class_cp == 0:
             plt_title = 'Overall Responce (Y)'
-            op_graph_vMAX = vMAX
-            op_graph_vMIN = vMIN
+            #op_graph_vMAX = 0.5
+            #op_graph_vMIN = -0.5
+
 
         location = "%s/data.hdf5" % (self.curr_dir)
         with h5py.File(location, 'r') as de_hdf:
@@ -422,8 +431,10 @@ class material_graphs(object):
             op = np.asarray(op_raw)
 
             im = ax[col].imshow(op.T, origin="lower", extent=the_extent,
-                                   interpolation=self.interp, vmin=op_graph_vMIN,
-                                   vmax=op_graph_vMAX, cmap=self.my_cmap)
+                                   interpolation=self.interp,
+                                   vmin=vMIN,
+                                   vmax=vMAX,
+                                   cmap=self.my_cmap)
 
 
             subplot_title = '$V_{o%d}$' % (col+1)
@@ -449,8 +460,10 @@ class material_graphs(object):
         fig.suptitle('Individual Outputs (weighted)\nEntropy (from the selected data)=%.3f/%.3f' % (entropy, max_entropy), fontsize=12)
 
         imY = ax[len(op_list)].imshow(responceY.T, origin="lower", extent=the_extent,
-                                 interpolation=self.interp, vmin=vMIN,
-                                 vmax=vMAX, cmap=self.my_cmap)
+                                 interpolation=self.interp,
+                                 vmin=self.min_colour_val,
+                                 vmax=self.max_colour_val,
+                                 cmap=self.my_cmap)
         ax[len(op_list)].set_title(plt_title, fontsize=9, verticalalignment='top')
         ax[len(op_list)].set_xlabel('$a_1$', fontsize=10)
         ax[len(op_list)].xaxis.set_tick_params(labelsize=8)
@@ -458,7 +471,7 @@ class material_graphs(object):
 
 
 
-        if self.class_cp == 1:
+        """if self.class_cp == 1:
             cax = fig.add_axes([0.25, 0.2, 0.2, 0.03])
             cbar = fig.colorbar(im, cax=cax, orientation='horizontal')
             cbar.set_label("Vout Value", fontsize=10)
@@ -473,7 +486,17 @@ class material_graphs(object):
             cbar = fig.colorbar(im, cax=cax, orientation='horizontal')
             #cbar = plt.colorbar(format='% 2.2f', cax=ax[len(op_list)])
             cbar.set_label(plt_title, fontsize=10)
-            cbar.ax.tick_params(labelsize=8)  # cbar ticks size
+            cbar.ax.tick_params(labelsize=8)  # cbar ticks size"""
+
+        cax = fig.add_axes([0.25, 0.2, 0.2, 0.03])
+        cbar = fig.colorbar(im, cax=cax, orientation='horizontal')
+        cbar.set_label("Vout Value", fontsize=10)
+        cbar.ax.tick_params(labelsize=8)  # cbar ticks size
+
+        caxY = fig.add_axes([0.6, 0.2, 0.2, 0.03])
+        cbar2 = fig.colorbar(imY, cax=caxY, orientation='horizontal')
+        cbar2.set_label(plt_title, fontsize=10)
+        cbar2.ax.tick_params(labelsize=8)  # cbar ticks size
 
 
         # # show & save plots
@@ -492,7 +515,7 @@ class material_graphs(object):
     #
 
     # # Function which loads and plots defualt genome material graph
-    def plt_VaryConfig(self, hdf, MG, MG_items, VC, cir, rep):
+    def plt_VaryConfig(self, hdf, MG, MG_items, VC, cir, rep, splt='rY'):
 
         if VC == 0 or 'VaryConfig' not in MG_items:
             if cir == 0 and rep == 0 and VC !=0:
@@ -500,6 +523,7 @@ class material_graphs(object):
             return
 
         responceY_list = np.array(MG.get('VaryConfig/responceY_list'))
+        op_list_Glist = np.array(MG.get('VaryConfig/op_list_Glist'))
         the_extent = np.array(MG.get('VaryConfig/extent'))
         Vconfig_1 = np.array(MG.get('VaryConfig/Vconfig_1'))
         Vconfig_2 = np.array(MG.get('VaryConfig/Vconfig_2'))
@@ -524,19 +548,32 @@ class material_graphs(object):
             print("")
             print("ERROR (MG): MG_VaryConfig() can only compute up to 2 inputs")
 
+        if splt == 'rY':
+            surface_list = responceY_list
+        elif splt[:2] == 'op':
+            op = int(splt[2])-1
+            surface_list = []
+            for op_list in op_list_Glist:
+                surface_list.append(op_list[op])
+        else:
+            raise ValueError("invaild Vconfig plot selected")
+
+
         # # run loop to plot
         k = 0
         for col in range(cols):
             for row in range(rows):
-                responce_Y = responceY_list[k]
+                responce_Y = surface_list[k]
 
 
 
                 if self.NetworkDict['num_config'] == 1:  # for 1 Vconfig input
 
                     im = ax[col].imshow(responce_Y.T, origin="lower", extent=the_extent,
-                                             interpolation=self.interp, vmin=self.min_colour_val,
-                                             vmax=self.max_colour_val, cmap=self.my_cmap)
+                                             interpolation=self.interp,
+                                             vmin=self.min_colour_val,
+                                             vmax=self.max_colour_val,
+                                             cmap=self.my_cmap)
 
 
                     if row == 0:
@@ -550,8 +587,10 @@ class material_graphs(object):
 
                 elif self.NetworkDict['num_config'] == 2:  # for 2 Vconfig input
                     im = ax[row, col].imshow(responce_Y.T, origin="lower", extent=the_extent,
-                                             interpolation=self.interp, vmin=self.min_colour_val,
-                                             vmax=self.max_colour_val, cmap=self.my_cmap)
+                                             interpolation=self.interp,
+                                             vmin=self.min_colour_val,
+                                             vmax=self.max_colour_val,
+                                             cmap=self.my_cmap)
 
                     # remove tick_params
                     plt.setp(ax[row, col].get_xticklabels(), fontsize=8)
@@ -615,9 +654,9 @@ class material_graphs(object):
         # # show & save plots
         if self.Save_NotShow == 1:
             if self.MetaData['SaveDir'] == self.save_dir:
-                fig_path = "%s/%d_rep%d_VaryConfig.%s" % (self.save_dir, cir, rep, self.format)
+                fig_path = "%s/%d_rep%d_VaryConfig_%s.%s" % (self.save_dir, cir, rep, splt, self.format)
             else:
-                fig_path = "%s/File%d__cir%d_rep%d_VaryConfig.%s" % (self.save_dir, self.dir_loop, cir, rep, self.format)
+                fig_path = "%s/File%d__cir%d_rep%d_VaryConfig_%s.%s" % (self.save_dir, self.dir_loop, cir, rep, splt, self.format)
             fig.savefig(fig_path, dpi=self.dpi)
             plt.close(fig)
 
@@ -703,11 +742,21 @@ class material_graphs(object):
         ax[len(init_op_list)].xaxis.set_tick_params(labelsize=8)
         ax[len(init_op_list)].yaxis.set_tick_params(labelsize=8)
 
-        cax = fig.add_axes([0.25, 0.15, 0.5, 0.05])
+        """cax = fig.add_axes([0.25, 0.15, 0.5, 0.05])
         cbar = fig.colorbar(im, cax=cax, orientation='horizontal')
         #cbar = plt.colorbar(format='% 2.2f', cax=ax[len(op_list)])
         cbar.set_label("Vout Value", fontsize=10)
+        cbar.ax.tick_params(labelsize=8)  # cbar ticks size"""
+
+        cax = fig.add_axes([0.25, 0.2, 0.2, 0.03])
+        cbar = fig.colorbar(im, cax=cax, orientation='horizontal')
+        cbar.set_label("Vout Value", fontsize=10)
         cbar.ax.tick_params(labelsize=8)  # cbar ticks size
+
+        caxY = fig.add_axes([0.6, 0.2, 0.2, 0.03])
+        cbar2 = fig.colorbar(imY, cax=caxY, orientation='horizontal')
+        cbar2.set_label('Y', fontsize=10)
+        cbar2.ax.tick_params(labelsize=8)  # cbar ticks size
 
         # # the function which updates the animation
         def op_animate(frame, ax):
@@ -834,6 +883,8 @@ class material_graphs(object):
                 print("VaryOutWeight material graphs not saved")
             return
 
+        #print("\n\n VAry Out weight, interp? = ", self.interp)
+
         responceY_list = np.array(MG.get('VaryOutWeight/responceY_list'))
         the_extent = np.array(MG.get('VaryOutWeight/extent'))
         rows = np.array(MG.get('VaryOutWeight/rows'))
@@ -947,7 +998,7 @@ class material_graphs(object):
         fig.colorbar(im, cax=cb_ax)
         if self.title == 'on':
             fig.suptitle('Varying input weights for defualt material and no shuffle inputs')
-            fig.subplots_adjust(left=0.12, bottom=0.12, right=0.8, top=0.8, wspace=0.05, hspace=0.2)
+            #fig.subplots_adjust(left=0.12, bottom=0.12, right=0.8, top=0.8, wspace=0.05, hspace=0.2)
 
         # # show & save plots
         if self.Save_NotShow == 1:
@@ -1077,7 +1128,8 @@ class material_graphs(object):
         image = ax.imshow(responceY_list[0].T, origin="lower",
                           extent=the_extent,
                           interpolation=self.interp,
-                          vmin=self.min_colour_val, vmax=self.max_colour_val,
+                          #vmin=self.min_colour_val, vmax=self.max_colour_val,
+                          vmin=np.min(responceY_list), vmax=np.max(responceY_list),
                           cmap=self.my_cmap)
         plt.colorbar(image)
 

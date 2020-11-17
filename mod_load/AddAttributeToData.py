@@ -19,7 +19,7 @@ or closeness to the boundary between classes which was evolved.
 """
 
 
-def AddAttribute(type, responceY, best_fit):
+def AddAttribute(type, responceY, best_fit, cir, rep):
 
     # type it either 'train', or 'veri'
 
@@ -45,16 +45,17 @@ def AddAttribute(type, responceY, best_fit):
         data_type = 'veri'
 
     # # sort the weigts into a list
-    BW_list = responceY
+    if len(responceY.shape) == 2:
+        if responceY.shape[1] == 1:
+            responceY = responceY[:,0]
+        else:
+            print("Warning: could not generate extra attribure. Responce is the wrong shape: %s" % str(responceY.shape))
+            return
 
 
     # # # # # # # # # # # #
     # Load the training data
-    train_data_X, train_data_Y = Load_Data(type, NetworkDict['num_input'],
-                                           NetworkDict['num_output_readings'],
-                                           ParamDict['training_data'],
-                                           ParamDict['TestVerify'],
-                                           ParamDict['UseCustom_NewAttributeData'])
+    train_data_X, train_data_Y = Load_Data(type, CompiledDict)
 
     # format input data
     for i in range(len(train_data_X[0,:])):
@@ -72,7 +73,7 @@ def AddAttribute(type, responceY, best_fit):
         new_data_label = 'Class'
     else:
         new_data_label = 'Responce'
-    df2 = pd.DataFrame({'NewAttribute': BW_list,
+    df2 = pd.DataFrame({'NewAttribute': responceY,
                       'class': train_data_Y})
 
 
@@ -90,7 +91,7 @@ def AddAttribute(type, responceY, best_fit):
 
 
     # save
-    save_loc = "%s/%d_Rep%d_DataWithWeigthAttribute.h5" % (dir, CompiledDict['circuit_loop'], CompiledDict['repetition_loop'])
+    save_loc = "%s/%d_Rep%d_DataWithWeigthAttribute.h5" % (dir, cir, rep)
     data_all.to_hdf(save_loc, key=data_type, mode='a')
 
 
@@ -179,8 +180,8 @@ def AddAttribute(type, responceY, best_fit):
         fig.set_size_inches(6.4, 4.8)
         the_ti = 'Predictive attributs, output represented as a colour (r/b >= +/-%f)\n Fitness: %.3f' % (colr_scale_lims, best_fit)
         fig.suptitle(the_ti)
-        fig1_path = "%s/%d_Rep%d_%s_DataWithWeigthAttribute.pdf" % (dir, CompiledDict['circuit_loop'], CompiledDict['repetition_loop'], type)
-        fig.savefig(fig1_path)
+        fig1_path = "%s/%d_Rep%d_%s_DataWithWeigthAttribute.png" % (dir, cir, rep, type)
+        fig.savefig(fig1_path, dpi=300)
 
         #
 
@@ -250,8 +251,8 @@ def AddAttribute(type, responceY, best_fit):
         fig.set_size_inches(6.4, 4.8)
         the_ti = 'Original Data plotted with generated output\nFitness: %.3f' % (best_fit)
         fig.suptitle(the_ti)
-        fig1_path = "%s/%d_Rep%d_%s_DataWithWeigthAttribute_alt.pdf" % (dir, CompiledDict['circuit_loop'], CompiledDict['repetition_loop'], type)
-        fig.savefig(fig1_path)
+        fig1_path = "%s/%d_Rep%d_%s_DataWithWeigthAttribute_alt.png" % (dir, cir, rep, type)
+        fig.savefig(fig1_path, dpi=300)
 
     #
 

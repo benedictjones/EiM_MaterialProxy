@@ -4,9 +4,9 @@ import yaml
 '''
 
 
-def LoadMetaData(dir):
+def LoadMetaData(dir, param_file=''):
 
-    with open(r'%s/Experiment_MetaData.yaml' % (dir)) as file:
+    with open(r'%s/Experiment_MetaData%s.yaml' % (dir, param_file)) as file:
         MetaData = yaml.full_load(file)
 
     return MetaData

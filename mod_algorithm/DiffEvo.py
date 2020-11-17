@@ -4,6 +4,7 @@ import time
 from tqdm import tqdm
 import h5py
 import random
+import matplotlib as mpl
 
 from mod_material.eim_processor import material_processor
 from mod_settings.Set_Load import LoadSettings
@@ -39,6 +40,8 @@ class de(object):
 
         # for MG saving itteratively (for animation)
         self.prev_best = [0]  # set initial: no prev value
+
+        mpl.rcParams.update(mpl.rcParamsDefault)
 
         """# create an MG plotter if makign animation
         if self.GenMG_animation == 1:
@@ -373,7 +376,7 @@ class de(object):
 
         # # Once the DE is finished
         if self.ParamDict['Add_Attribute_To_Data'] == 1:
-            AddAttribute('train', self.best_responceY, pop_fitnesses[self.best_idx])
+            AddAttribute('train', self.best_responceY, pop_fitnesses[self.best_idx], cir, rep)
 
         if self.GenMG_animation == 1:
             del self.temp_MGani_obj

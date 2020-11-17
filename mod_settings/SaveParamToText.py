@@ -12,7 +12,7 @@ def save_param(CompiledDict, experiment, now):
     text_list = []
 
     text_list.append('Part of a series of experiments: %d' % (experiment))
-    if experiment == 1:
+    if CompiledDict['ReUse_dir'] != 'na':
         text_list.append('  > dir from which saved material models were used:   %s' % (CompiledDict['ReUse_dir']))
 
 
@@ -88,12 +88,22 @@ def save_param(CompiledDict, experiment, now):
         text_list.append('      Default diodes properties: IS=20@u_uA, RS=0.8@u_mOhm, BV=30@u_V, IBV=200@u_uV, N=1')
 
     text_list.append('Material Properties are:')
-    if SpiceDict['model'][:2] == 'NL':
+    if SpiceDict['model'] == 'NL_RN':
         text_list.append(' > i = aV^2 + bV where:')
-        text_list.append(' > Using distributions A~N(%f, %f) & B~N(%f, %f), a & b are selected np.random.multivariate_normal with covariance = %f' % (SpiceDict['a_mean'], SpiceDict['a_var'], SpiceDict['b_mean'], SpiceDict['b_var'], SpiceDict['cov']))
-        text_list.append(' > These values then normalized between 0 and 1, before being scaled to between the selected range:')
+        text_list.append(' > Using distributions A~N(%.2f, %.2f^2) & B~N(%.2f, %.2f^2), two distributions A & B are generated using np.random.multivariate_normal with covariance factor (correlation) = %.2f' % (SpiceDict['a_mean'],
+                                                                                                                                                                                   SpiceDict['a_std'],
+                                                                                                                                                                                   SpiceDict['b_mean'],
+                                                                                                                                                                                   SpiceDict['b_std'],
+                                                                                                                                                                                   SpiceDict['corr']))
+        text_list.append('  >> the appropriate number of a & b values are uniformly selctected from these normal distributions')
+        text_list.append('  >> negative values are excluded!!! (so resulting final distribution will not be exactly correct!)')
+
+    elif SpiceDict['model'] == 'NL_uRN':
+        text_list.append(' > i = aV^2 + bV where:')
+        text_list.append(' > Values of a & b are randomly (uniformly) selected from the ranges:')
         text_list.append('  >> a selected between [%f, %f]' % (SpiceDict['material_a_min'], SpiceDict['material_a_max']))
         text_list.append('  >> b selected between [%f, %f]' % (SpiceDict['material_b_min'], SpiceDict['material_b_max']))
+
     elif SpiceDict['model'][-2:] == 'NN':
         text_list.append('A evolvable Neuromorphic Network was used:')
         text_list.append(' > Number of layers = %d' % SpiceDict['num_layers'])
@@ -106,9 +116,8 @@ def save_param(CompiledDict, experiment, now):
         text_list.append('  > Resistors randomly chosen between [%f, %f]' % (SpiceDict['min_r'], SpiceDict['max_r']))
 
     text_list.append('\nNote: the saved data includes the initial population best fitness and genome')
-    text_list.append('      So read outputs in chunks of %d\n' % (1 + ParamDict['its']))
 
-    text_list.append('Data Directory is:')
+    text_list.append('\nData Directory is:')
     text_list.append('%s\n' % (CompiledDict['SaveDir']))
 
     # append finishing time
@@ -126,8 +135,8 @@ def save_param(CompiledDict, experiment, now):
     file1.write(Deets)
     file1.close()
 
-    # Save data to be extracted in analysis
+    """# Save data to be extracted in analysis
     with open(r'%s/Experiment_MetaData.yaml' % (CompiledDict['SaveDir']), 'w') as sfile:
-        yaml.dump(CompiledDict, sfile)
+        yaml.dump(CompiledDict, sfile)"""
 
     return Deets

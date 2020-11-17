@@ -12,18 +12,28 @@ DE:
   mut : 0.8
   crossp : 0.8
   popsize : 20
-  its : 30
+  its : 40
   training_data : con2DDS # 2DDS, O2DDS, con2DDS, MMDS, wine, iris, orth
 
-  IntpScheme : pn_binary  # pn_binary, band_binary, band, HOW, clustering, Ridge, RidgeHOW
-  FitScheme : error  # error, BinCrossEntropy, PCAH
+  IntpScheme : pn_binary  # pn_binary, band_binary, band, HOW, clustering, Ridge, RidgeHOW, Kmean
+  FitScheme : error  # error, BinCrossEntropy, PCAH, ComScore (from clust)
+
+  threshold : 0.3 # 5  # used for - thresh_binary
+
+  RidgedAlpha : 0
+  RidgedIntercept : True
+
+  pt_IntpScheme : pn_binary  # used for RCpt
+  pt_FitScheme : PCAH  # used for RCpt
+  pt_final_IntpScheme : Ridge  # used for RCpt
+  pt_final_FitScheme : error  # used for RCpt
 
   BreakOnZeroFit : 1
   TestVerify : 1  # use training & test dataset
 
   # Set whether to save data with extra attribute, and to plot
-  Add_Attribute_To_Data : 0
-  PlotExtraAttribute : 0
+  Add_Attribute_To_Data : 1
+  PlotExtraAttribute : 1
   UseCustom_NewAttributeData : 0
   NewAttrDataDir : na
 
@@ -71,32 +81,47 @@ spice:
   Vmin : -5
   Vmax : 5
 
-  max_r : 10  # in kOhms
-  min_r : 0.1 # in kOhms
-  R_array_in : 'na'
+  max_r : 100  # in kOhms
+  min_r : 10 # in kOhms
+  R_array_in : na # 'na'
     # for 5 node
       # R = [5, 1, 10, 3, 0.1, 1, 2, 0.7, 1.5, 4]
+      # R = [56, 8.2, 20, 56, 8.2, 20, 100000, 8.2, 20, 100000]
     # for 6 node
       # R = [5, 1, 10, 3, 0.1, 1, 2, 0.7, 0.5, 6.3, 31.8, 10, 1000, 1000, 1000]  # in kOhm
       # R = [5,7.7,4.8,3.2,2,1.5,8.1,1.5,6.7,4.6,7.5,0.9,1,4.5,2.2]
 
 
-  shunt_R : 10  # kOhm
+  shunt_R : 70  # kOhm
   contact_Res : 200  # Ohm
 
   rand_dir : 1  # diode random direction toggle
   defualt_diode_dir : 1
   DefualtDiode : 1
 
-  material_a_min : 10  # nano, John 33
-  material_a_max : 1000  # nano, John 170
-  material_b_min : 10  # nano, John 280
-  material_b_max : 1000  # nano, John 960
-  a_mean : 0
-  a_var : 1
-  b_mean : 0
-  b_var : 1
-  cov : 0
+
+  # # NL Material correlation factor, vaired between [-1,1] varies actual
+  # covarience between its max/min
+  corr : 0.5
+
+  # # Used for uniform dist selection
+  material_a_min :  33 # 3.0e+6
+  material_a_max :  170
+  material_b_min :  280
+  material_b_max :  960
+
+  #material_a_min : 10  # nano, John 33
+  #material_a_max : 10000  # nano, John 170
+  #material_b_min : 10  # nano, John 280
+  #material_b_max : 10000  # nano, John 960
+
+  # # Used for Normal Distr selection
+  a_mean : 120
+  b_mean : 560
+  a_std : 448
+  b_std : 270
+
+
 
   parallelC : 0  # add parallel capacitors between nodes
   ParallelCapLim : [0.1, 10]  # in uF
@@ -116,7 +141,7 @@ spice:
   ConfigPerLayer : 1
 
 mg:
-  plotMG : 1
+  plotMG : 0
   plot_defualt : 1
   MG_vary_Vconfig : 1
   MG_vary_PermConfig : 1

@@ -191,9 +191,9 @@ class plotting(object):
 
             # produce statsiscts and results of run
             if self.ParamDict['TestVerify'] == 1:
-                results_stats = "Mean Train Fit = %.3f, Best Train Fit = %.3f, Std Train Fit = %.3f | Mean Veri Fit = %.3f, Best Veri Fit = %.3f, Std Veri Fit = %.3f" % (self.mean_training_fit, self.best_training_fit, self.std_training_fit, self.mean_veri, self.best_veri, self.std_veri)
+                results_stats = "Mean Train Fit = %.3f, Std Train Fit = %.3f, Best Train Fit = %.3f | Mean Veri Fit = %.3f, Std Veri Fit = %.3f, Best Veri Fit = %.3f " % (self.mean_training_fit, self.std_training_fit, self.best_training_fit, self.mean_veri, self.std_veri, self.best_veri)
             else:
-                results_stats = "Mean Train Fit = %.3f, Best Train Fit = %.3f, Std Train Fit = %.3f" % (self.mean_training_fit, self.best_training_fit, self.std_training_fit)
+                results_stats = "Mean Train Fit = %.3f, Std Train Fit = %.3f, Best Train Fit = %.3f" % (self.mean_training_fit, self.std_training_fit, self.best_training_fit)
             print(results_stats)
             result_stats_text.append(results_stats)
             #

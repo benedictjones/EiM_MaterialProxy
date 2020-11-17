@@ -7,7 +7,7 @@ import h5py
 # import sklearn.metrics as met
 
 from sklearn.linear_model import Ridge
-
+import sklearn.cluster as cl
 from mod_methods.FetchPerm import IndexPerm, reorder
 
 
@@ -68,12 +68,12 @@ def compute_EiM_ouputs(genome, Vout, data_Y, CompiledDict, the_data=0):
     # # # # Schemes # # # #
     # Interpret for band binary
     if CompiledDict['DE']['IntpScheme'] == 'band_binary':
-        class_out, responceY = binary(genome, op, CompiledDict)
+        class_out, responceY, handle = binary(genome, op, CompiledDict)
     #
 
     # Interpret for +/- binary
-    elif CompiledDict['DE']['IntpScheme'] == 'pn_binary':
-        class_out, responceY = binary(genome, op, CompiledDict)
+    elif CompiledDict['DE']['IntpScheme'] == 'pn_binary' or CompiledDict['DE']['IntpScheme'] == 'thresh_binary':
+        class_out, responceY, handle = binary(genome, op, CompiledDict)
     #
 
     # Interpret for using varying bands
@@ -82,17 +82,18 @@ def compute_EiM_ouputs(genome, Vout, data_Y, CompiledDict, the_data=0):
 
     # Interpret for using highest output wins
     elif CompiledDict['DE']['IntpScheme'] == 'HOW':
-        class_out, responceY = highest_output_wins(genome, op, CompiledDict)
+        class_out, responceY, handle = highest_output_wins(genome, op, CompiledDict)
 
     # if we just want the output retuned with no class assignment
     elif CompiledDict['DE']['IntpScheme'] == 'raw':
         class_out = np.zeros(len(Vout[:,0]))*-1
         responceY = op
+        handle = 0
         #print(">> EiM Raw hit ")
 
     # Interpret for using clustering
-    elif CompiledDict['DE']['IntpScheme'] == 'clustering':
-        class_out, responceY = cluster(genome, op, CompiledDict)
+    elif CompiledDict['DE']['IntpScheme'] == 'Kmean':
+        class_out, responceY, handle = cluster(genome, op, CompiledDict)
 
     else:  # i.e input is wrong / not vailable
         raise ValueError('(interpretation_scheme): Invalid scheme %s' % (CompiledDict['DE']['IntpScheme']))
@@ -107,7 +108,7 @@ def compute_EiM_ouputs(genome, Vout, data_Y, CompiledDict, the_data=0):
     #"""
 
 
-    return class_out, responceY, Vout
+    return class_out, responceY, Vout, handle
 
 #
 
@@ -174,9 +175,15 @@ def binary(genome, op, Dict):
             else:
                 class_out.append(1)
                 responceY.append(reading)
+        elif scheme == 'thresh_binary':
+            if reading >= ParamDict['threshold']:
+                class_out.append(2)
+                responceY.append(reading)
+            else:
+                class_out.append(1)
+                responceY.append(reading)
 
-
-    return class_out, responceY
+    return class_out, responceY, 0
 
 #
 
@@ -281,7 +288,7 @@ def band(genome, op,  Dict):
 
     #print(class_out)
 
-    return class_out, class_out
+    return class_out, class_out, 0
 
 #
 
@@ -291,11 +298,12 @@ def band(genome, op,  Dict):
 
 #
 
-"""
-Simply measure the outputs, using a particular perm (defualt is just the output
-node sequence) assign a class to the highest output.
-"""
+
 def highest_output_wins(genome, op, Dict):
+    """
+    Simply measure the outputs, using a particular perm (defualt is just the output
+    node sequence) assign a class to the highest output.
+    """
 
     CompiledDict = Dict
     ParamDict = CompiledDict['DE']
@@ -335,7 +343,7 @@ def highest_output_wins(genome, op, Dict):
         class_out.append(selected_class)
         responceY.append(selected_class)
 
-    return class_out, responceY
+    return class_out, responceY, 0
 
 #
 
@@ -346,12 +354,15 @@ def highest_output_wins(genome, op, Dict):
 #
 
 #
-"""
-Simply measure the outputs, using a particular perm (defualt is just the output
-node sequence) assign a class to the highest output.
-"""
+
 def cluster(genome, op, Dict):
+    """
+    Apply a clustring algorithm to produce a responce which is the assigned
+    classes.
 
+    Note: If clustering is to be used as a fitness metric only. Generate raw
+    responce values and use clustring in the FitScheme!
+    """
 
     CompiledDict = Dict
     ParamDict = CompiledDict['DE']
@@ -362,12 +373,10 @@ def cluster(genome, op, Dict):
 
     class_out = []
 
-    # cluster vout
-    # define the model
-    model = cl.AgglomerativeClustering(n_clusters=ParamDict['num_classes'])
 
-    # fit model and predict clusters
-    yhat = model.fit_predict(op)
+    model = cl.KMeans(ParamDict['num_classes'])
+    model.fit(op)
+    yhat = model.predict(op) # assign a cluster to each example
 
     yhat = yhat + 1
 
@@ -400,8 +409,9 @@ def cluster(genome, op, Dict):
 
     class_out = yhat
     responceY = class_out
+    handle = model
 
-    return class_out, responceY
+    return class_out, responceY, handle
 
 
 #

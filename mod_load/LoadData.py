@@ -6,8 +6,8 @@ from mod_load.NewWeightedData_Load import Load_NewWeighted_Data
 def Load_Data(type, CompiledDict):
 
     # normalisation limits (i.e the DE voltage lims)
-    min = -5
-    max = 5
+    min = CompiledDict['spice']['Vmin']
+    max = CompiledDict['spice']['Vmax']
 
     #full_path = os.path.realpath(__file__)
     #path, filename = os.path.split(full_path)
@@ -33,7 +33,7 @@ def Load_Data(type, CompiledDict):
         raise ValueError('(LoadData) invalid type to load: %s' % (type))
 
     # # Load HDF5 files and data ##
-    if CompiledDict['DE']['UseCustom_NewAttributeData'] == 0:
+    if CompiledDict['DE']['UseCustom_NewAttributeData'] == 0 and CompiledDict['DE']['training_data'] != 'orth':
 
         # # Do we flip the class data?
         if CompiledDict['DE']['training_data'] == 'flipped_2DDS':
@@ -72,15 +72,15 @@ def Load_Data(type, CompiledDict):
         X_input_attr, Y_class = Load_NewWeighted_Data(data_type, CompiledDict['network']['num_input'], CompiledDict['DE']['training_data'])
 
 
-
-
-
-
     """print("X_input_attr\n", X_input_attr[range(3),:])
     print("Y_class\n", Y_class)
     print(CompiledDict['DE']['training_data'])
     exit()"""
 
+    """ # dont use, might want to just load, errer check in eim_processor
+    if len(X_input_attr[0,:]) != CompiledDict['network']['num_input']:
+        raise ValueError("Using %d inputs --> for %d attributes!" % (CompiledDict['network']['num_input'], len(X_input_attr[0,:])))
+    """
     return X_input_attr, Y_class
 
 #

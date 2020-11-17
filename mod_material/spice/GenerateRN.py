@@ -3,12 +3,14 @@ import sys
 import os
 import PySpice
 import random
+import seaborn as sns
+
 
 from PySpice.Spice.Netlist import Circuit, SubCircuit, SubCircuitFactory
 from PySpice.Unit import *
 import PySpice.Logging.Logging as Logging
 
-
+from scipy import stats
 
 # My imports
 from mod_material.spice.SubCir import SeriesRD, SeriesNL, SeriesPOD
@@ -103,6 +105,13 @@ def generate_random_netork(CompiledDict, cir):
     GenomeDict = CompiledDict['genome']
     #ParamDict = LoadSettings_ResnetDebug()
 
+    # # make file
+    dir_path = "%s/MD_CircuitTop" % (CompiledDict['SaveDir'])
+    if os.path.exists(dir_path) is not True:
+        os.makedirs(dir_path)
+
+
+
     node_cont = 1
 
     # Generate Fulley connected material nodes
@@ -121,14 +130,42 @@ def generate_random_netork(CompiledDict, cir):
     # Create ressistance array accordign to charactersistic
     if NetworkDict['model'] == 'NL_RN':  # non-linear resistor network
 
-        cov_matrix = [[MaterialDict['a_var'], MaterialDict['cov']],
-                      [MaterialDict['cov'], MaterialDict['b_var']]]
-        data = np.random.multivariate_normal([MaterialDict['a_mean'], MaterialDict['b_mean']], cov_matrix, size=num_conn)
-        data_temp = data + abs(data.min())
-        data_nom = data_temp/abs(data_temp.max())
-        nom_a_list = data_nom[:, 0]
-        nom_b_list = data_nom[:, 1]
+        cov_matrix = [[1., MaterialDict['corr']],
+                      [MaterialDict['corr'], 1.]]
 
+        # generate correlated normal distributions
+        mvnorm = stats.multivariate_normal([0, 0], cov_matrix, allow_singular=True)
+        x = mvnorm.rvs((num_conn,))
+
+        # convert normal distributions to uniform distributions
+        norm = stats.norm([0],[1])
+        x_unif = norm.cdf(x)
+        nom_a_list, nom_b_list = x_unif[:,0], x_unif[:,1]
+
+
+        # """
+        h1 = sns.jointplot(x=x[:, 0], y=x[:, 1]+0.00001*np.random.rand(len(x[:,0])), kind='kde')  # add noise to avoid error
+        h1.set_axis_labels('X1', 'X2', fontsize=16)
+        h1.ax_joint.plot(x[:, 0], x[:, 1], ".", color="#800000")
+        h1.ax_marg_y.set_ylim(-np.max(np.abs(x[:, 1]))-0.5, np.max(np.abs(x[:, 1]))+0.5)
+        h1.ax_marg_x.set_xlim(-np.max(np.abs(x[:, 0]))-0.5, np.max(np.abs(x[:, 0]))+0.5)
+        h1.fig.suptitle('Correlated Normal Distribution')
+        h1.fig.subplots_adjust(top=0.9, bottom=0.1, left=0.15, right=0.95)
+        h1.plot_marginals(sns.rugplot, color="#800000", height=.15, clip_on=True)
+        h1.savefig("%s/NormalDistr.png" % (dir_path))
+
+        # # plot correlated uniform ditribution, created from the
+        # # transformed normal distributions
+
+        h2 = sns.jointplot(x=x_unif[:, 0], y=x_unif[:, 1], kind='hex', gridsize=4)
+        h2.ax_joint.plot(x_unif[:, 0], x_unif[:, 1], ".", color="#800000")
+        h2.set_axis_labels('Y1', 'Y2', fontsize=16)
+        h2.fig.subplots_adjust(top=0.9, bottom=0.1, left=0.15, right=0.95)
+        h2.fig.suptitle('Correlated Uniform Distribution')
+        h2.savefig("%s/UniformDistr.png" % (dir_path))
+        #"""
+
+        # scale to the appropriate a & b ranges
         diff = np.fabs(MaterialDict['material_a_min'] - MaterialDict['material_a_max'])  # absolute val of each el
         long_a_list = MaterialDict['material_a_min'] + nom_a_list * diff  # pop with their real values
         a_list = np.around(long_a_list, decimals=2)
@@ -136,10 +173,40 @@ def generate_random_netork(CompiledDict, cir):
         diff = np.fabs(MaterialDict['material_b_min'] - MaterialDict['material_b_max'])  # absolute val of each el
         long_b_list = MaterialDict['material_b_min'] + nom_b_list * diff  # pop with their real values
         b_list = np.around(long_b_list, decimals=2)
-        #b_list = np.zeros(len(b_list))
 
+    elif NetworkDict['model'] == 'NL_nRN':
 
-        """nom_a_list = np.random.rand(num_conn)
+        a_var = MaterialDict['a_std']**2
+        b_var = MaterialDict['b_std']**2
+
+        # use the covarience factor [-1,1] to calc the selected cov
+        max_covarience = (a_var*b_var)**0.5
+        real_covarence = MaterialDict['corr']*max_covarience
+
+        cov_matrix = [[a_var, real_covarence],
+                      [real_covarence, b_var]]
+
+        data = np.random.multivariate_normal([MaterialDict['a_mean'], MaterialDict['b_mean']], cov_matrix, size=num_conn)
+        a_all = data[:, 0]
+        b_all = data[:, 1]
+        a_choices, b_choices = a_all, b_all
+
+        a_list = []
+        b_list = []
+        for i in range(num_conn):
+            while 1:
+                aa = np.random.choice(a_choices, replace=False)
+                bb = np.take(b_choices, np.where(a_choices == aa)[0])
+                if aa > 0 and bb > 0:
+                    a_list.append(aa)
+                    b_list.append(bb)
+                    break
+
+        a_list = np.asarray(a_list)
+        b_list = np.asarray(b_list)
+
+    elif NetworkDict['model'] == 'NL_uRN':
+        nom_a_list = np.random.rand(num_conn)
         nom_b_list = np.random.rand(num_conn)
 
         diff = np.fabs(MaterialDict['material_a_min'] - MaterialDict['material_a_max'])  # absolute val of each el
@@ -149,8 +216,7 @@ def generate_random_netork(CompiledDict, cir):
         diff = np.fabs(MaterialDict['material_b_min'] - MaterialDict['material_b_max'])  # absolute val of each el
         long_b_list = MaterialDict['material_b_min'] + nom_b_list * diff  # pop with their real values
         b_list = np.around(long_b_list, decimals=2)
-
-        b_list = np.zeros(len(b_list))"""
+        #b_list = np.zeros(len(b_list))
 
     elif NetworkDict['model'] == 'R_RN' or NetworkDict['model'] == 'D_RN' or NetworkDict['model'] == 'POD_RN':  # non-linear resistor network
 
@@ -203,8 +269,23 @@ def generate_random_netork(CompiledDict, cir):
     # Input Creation
     # #################################################
 
-    circuit.model('DefualtDiode', 'D', IS=20@u_uA, RS=0.8@u_mOhm,
-                  BV=30@u_V, IBV=200@u_uV, N=1)
+    # custom
+    """
+    circuit.model('DefualtDiode', 'D',
+                  IS=20@u_uA, RS=0.8@u_mOhm, BV=30@u_V, IBV=200@u_uV, N=1)
+    #"""
+
+    # 1N4148PH (Signal Diode)
+    #"""
+    circuit.model('DefualtDiode', 'D',
+                  IS=4.352@u_nA, RS=0.6458@u_Ohm, BV=110@u_V, IBV=0.0001@u_V, N=1.906)
+    #"""
+
+    # 1N4001 (Power Diode)
+    """
+    circuit.model('DefualtDiode', 'D',
+                  IS=29.5@u_nA, RS=73.5@u_mOhm, BV=60@u_V, IBV=10@u_uV, N=1.96)
+    #"""
 
     # #################################################
     # Generate contact resistances
@@ -213,8 +294,8 @@ def generate_random_netork(CompiledDict, cir):
     for node in nodes:
         if node[0] == 'i':
             circuit.R('%s_contact' % (node), '%s_conn' % (node), node, MaterialDict['contact_Res']@u_Ohm)
-        elif node[0] == 'o':
-            circuit.R('%s_contact' % (node), node, '%s_conn' % (node), MaterialDict['contact_Res']@u_Ohm)
+        #elif node[0] == 'o':
+        #    circuit.R('%s_contact' % (node), node, '%s_conn' % (node), MaterialDict['contact_Res']@u_Ohm)
 
     # #################################################
     # Produce network acording to selected network
@@ -239,7 +320,7 @@ def generate_random_netork(CompiledDict, cir):
             node_pairs.append([n1, n2])  # save node pairs in arrays
 
             # non-linear resistor network
-            if NetworkDict['model'] == 'NL_RN':
+            if 'NL' in NetworkDict['model']:
                 a, b = a_list[element_num-1], b_list[element_num-1]
                 a_express = "%.2f%s" % (a, "n")
                 b_express = "%.2f%s" % (b, "n")
@@ -311,7 +392,7 @@ def generate_random_netork(CompiledDict, cir):
     # #################################################
     if MaterialDict['shunt_R'] != 'none':
         for i in range(NetworkDict['num_output']):
-            Out_Node = "op%d_conn" % (i+1)
+            Out_Node = "op%d" % (i+1)
             # print("Node out", Out_Node)
             circuit.R("shunt%d" % (i+1), Out_Node, circuit.gnd, MaterialDict['shunt_R']@u_kOhm)
 
@@ -352,11 +433,6 @@ def generate_random_netork(CompiledDict, cir):
     # # Save the netowrk Topology
     # #################################################
     # print("the circuit: \n", circuit)
-
-    # # make file
-    dir_path = "%s/MD_CircuitTop" % (CompiledDict['SaveDir'])
-    if os.path.exists(dir_path) is not True:
-        os.makedirs(dir_path)
 
     # # Print circuit topography to file
     circuit_top = circuit
@@ -419,7 +495,7 @@ def generate_random_netork(CompiledDict, cir):
         else:
             text_list.append('Used Random IS vals, with limits: %s [mOhm]' % (str(RS_val_lim)))
 
-    elif NetworkDict['model'] == 'NL_RN':
+    elif 'NL' in NetworkDict['model']:
         text_list = []
         for i in range(len(a_list)):
 

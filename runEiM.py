@@ -3,6 +3,7 @@ import matplotlib
 import numpy as np
 import h5py
 from datetime import datetime
+import yaml
 
 import gc
 import os
@@ -11,6 +12,8 @@ import sys
 from sklearn.decomposition import PCA
 from sklearn import preprocessing
 
+import sklearn.cluster as cl
+import sklearn.metrics as met
 
 from mod_MG.MaterialGraphs import materialgraphs
 from mod_analysis.Analysis import analysis
@@ -108,6 +111,9 @@ def RunEiM(param_file='',
                 os.makedirs(new_dir)
                 prm = ChangeSettings(param_file, SaveDir=new_dir)   # used in Resnet.py to save material models
 
+                with open(r'%s/Experiment_MetaData%s.yaml' % (new_dir, param_file), 'w') as sfile:
+                    yaml.dump(prm, sfile)
+
             if prm['DE']['UseCustom_NewAttributeData'] == 1:
                 Load_NewWeighted_SaveTemp(prm['DE']['NewAttrDataDir'], circuit_loop, repetition_loop, prm['DE']['TestVerify'])
 
@@ -139,7 +145,6 @@ def RunEiM(param_file='',
 
             # add in zeros and copy best genome to ensure one loop fills up
             # itteration number sized list
-            best_fit_list = list(best_fit_list)
             if len(best_fit_list) < prm['DE']['its']+1:  # +1 is to include initial pop fitness
                 location = len(best_fit_list)
                 while True:
@@ -269,6 +274,74 @@ def RunEiM(param_file='',
             else:
                 MG_obj = 'na'
 
+            # # # ########
+            # If clustering
+            if 'Kmean' in prm['DE']['IntpScheme'] and 'Kmean' not in prm['DE']['FitScheme']:
+
+                data_X, data_y = Load_Data('train', prm)
+
+                model = cl.KMeans(prm['DE']['num_classes'])
+                model.fit(data_X)
+                yhat_og = model.predict(data_X) # assign a cluster to each example
+                og_com = met.completeness_score(data_y, yhat_og)
+
+                fig, ax = plt.subplots(ncols=3, nrows=1, sharey=True, sharex=True)
+
+                ax[0].scatter(data_X[:,0], data_X[:,1], c=data_y)
+                ax[0].set_title('OG Data')
+                ax[0].set_xlabel('a1')
+                ax[0].set_ylabel('a2')
+                ax[0].set_aspect('equal', adjustable='box')
+
+                ax[1].scatter(data_X[:,0], data_X[:,1], c=yhat_og)
+                ax[1].set_title('Clusters On OG')
+                ax[1].set_xlabel('a1')
+                ax[1].set_aspect('equal', adjustable='box')
+
+                ax[2].scatter(data_X[:,0], data_X[:,1], c=best_responceY_list[-1])
+                ax[2].set_title('Predicted Clusters')
+                ax[2].set_xlabel('a1')
+                ax[2].set_aspect('equal', adjustable='box')
+
+                fig.suptitle('IntpScheme: %s, FitScheme: %s.' % (prm['DE']['IntpScheme'], prm['DE']['FitScheme']))
+
+
+                fig0_path = "%s/%d_Rep%d_FIG_Cluster.png" % (new_dir, circuit_loop, repetition_loop)
+                fig.savefig(fig0_path, dpi=300)
+                plt.close(fig)
+
+            elif 'Kmean' not in prm['DE']['IntpScheme'] and 'Kmean' in prm['DE']['FitScheme']:
+                rY = best_responceY_list[-1]
+
+                if len(rY[0, :]) == 2:
+
+                    data_X, data_y = Load_Data('train', prm)
+
+                    fig, ax = plt.subplots()
+                    ax.scatter(rY[:,0], rY[:,1], c=data_y)
+                    ax.set_title('Output')
+                    ax.set_xlabel('$op_1$')
+                    ax.set_ylabel('$op_2$')
+                    fig.suptitle('IntpScheme: %s, FitScheme: %s.' % (prm['DE']['IntpScheme'], prm['DE']['FitScheme']))
+                    fig0_path = "%s/%d_Rep%d_FIG_TransformedOutput.png" % (new_dir, circuit_loop, repetition_loop)
+                    fig.savefig(fig0_path, dpi=300)
+                    plt.close(fig)
+
+                elif len(rY[0, :]) == 1:
+
+                    data_X, data_y = Load_Data('train', prm)
+
+                    fig, ax = plt.subplots()
+                    ax.scatter(np.arange(len(rY)), rY, c=data_y)
+                    ax.set_title('Output')
+                    ax.set_xlabel('instance')
+                    ax.set_ylabel('$op_1$')
+                    fig.suptitle('IntpScheme: %s, FitScheme: %s.' % (prm['DE']['IntpScheme'], prm['DE']['FitScheme']))
+                    fig0_path = "%s/%d_Rep%d_FIG_TransformedOutput.png" % (new_dir, circuit_loop, repetition_loop)
+                    fig.savefig(fig0_path, dpi=300)
+                    plt.close(fig)
+
+
             # increment loop and clean up
             gc.collect()
             loop = loop + 1
@@ -347,11 +420,16 @@ if __name__ == "__main__":
     #mp.set_start_method('fork')
     ReUse_dir = 'na'
 
-    RunEiM(num_circuits=1, num_repetitions=1,
-           #model='R_RN',  # R_RN, D_RN, NL_RN, custom_RN
-           cov=0,
-           #num_readout_nodes=2, OutWeight_gene=1, IntpScheme='HOW',
-           num_processors=4)
+    ReUse_dir = 'Results/2020_11_11/__10_41_27__con2DDS__real_D_RN__EiM'
 
+    RunEiM(num_circuits=1, num_repetitions=1,
+           model='NL_RN',  # R_RN, D_RN, NL_RN, NL_uRN, custom_RN
+           #IntpScheme='raw',
+           #FitScheme='KmeanDist',
+           #num_readout_nodes=2, OutWeight_gene=1, IntpScheme='HOW',
+           #ReUse_dir=ReUse_dir,
+           num_processors=10)
+
+#
 
 # fin

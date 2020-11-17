@@ -168,7 +168,7 @@ class Animation(object):
         # Initialise our plot. Make sure you set vmin and vmax!
         image = ax.imshow(self.all_data[0].T, origin="lower",
                           extent=the_extent,
-                          interpolation='gaussian', vmin=-0.2, vmax=0.2, cmap=my_cmap)
+                          interpolation='none', vmin=-0.2, vmax=0.2, cmap=my_cmap)
         plt.colorbar(image)
 
         #ax.plot([0,1,2],[2,4,6])
@@ -279,7 +279,7 @@ class Animation(object):
         # Initialise our plot. Make sure you set vmin and vmax!
         image = ax_mg.imshow(self.all_data[0].T, origin="lower",
                           extent=the_extent,
-                          interpolation='gaussian', vmin=-0.2, vmax=0.2, cmap=my_cmap)
+                          interpolation='none', vmin=-0.2, vmax=0.2, cmap=my_cmap)
 
         #plt.colorbar(image, ax=ax_mg)  # ad to ax plot
 

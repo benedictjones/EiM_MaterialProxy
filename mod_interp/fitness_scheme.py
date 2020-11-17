@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn import preprocessing
 
+from mod_load.LoadData import Load_Data
+
 import sklearn.cluster as cl
+import sklearn.metrics as met
 import itertools
 import scipy.spatial.distance as ds
 
@@ -57,7 +60,7 @@ def centr_dist(centers):
 Fitness schemes:
 """
 
-def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict):
+def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict, handle=0, the_data=0):
 
     ParamDict = CompiledDict['DE']
     NetworkDict = CompiledDict['network']
@@ -107,14 +110,69 @@ def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict):
 
     elif FitScheme == 'KmeanDist':
         """
-        Make
+        Apply Clustering to a raw responce value, then calculate the distance
+        between clusters.
+        Use this as a fitness metric.
         """
+
+        # Re shape the 1d array into a 2d numpy array
+        if len(responceY.shape) == 1:
+            responceY = np.reshape(responceY, (responceY.shape[0], 1))
+
         model = cl.KMeans(ParamDict['num_classes'])
         model.fit(responceY)
         yhat = model.predict(responceY) # assign a cluster to each example
 
         mean_dist = centr_dist(model.cluster_centers_)
         fitness = 1/mean_dist  # we want a big distance!
+
+
+
+    # requires a clustering model handle to be passed in
+    elif FitScheme == 'ComScore':
+        """
+        Take the outpus from clustring applied in the InterpScheme (i.e the
+        assigned classes) and compute some fitness.
+        Take the completness score as the fitness.
+
+        i.e Scores the InterpScheme clustering effort.
+        """
+
+        data_X, nn = Load_Data(the_data, CompiledDict)
+
+        if len(responceY.shape) == 1:
+            responceY = np.reshape(responceY, (responceY.shape[0], 1))
+        model = handle
+        model.fit(responceY)
+        yhat = model.predict(responceY) # assign a cluster to each example
+
+        hom, com, v_mes = met.homogeneity_completeness_v_measure(real_class, yhat)
+
+        model = cl.KMeans(ParamDict['num_classes'])
+        model.fit(data_X)
+        yhat_og = model.predict(data_X) # assign a cluster to each example
+        og_hom, og_com, og_v_mes = met.homogeneity_completeness_v_measure(real_class, yhat_og)
+
+
+        per = (hom+com)/2
+
+        og_per = (og_hom+og_com)/2
+        og_fit = 1-og_per
+        fit = 1 - per
+
+        fitness = fit/og_fit
+
+        #print("homo:", hom, " complt:", com, " perc:", per, " fit:", fitness)
+
+        """error = np.asarray(np.abs(yhat - real_class))  # calc error matrix, mke it posotive
+        for loc, el in enumerate(error):
+            if int(el) != 0:
+                error[loc] = 1
+        fitness = np.mean(error)"""
+
+        #fitness = og_com/(com+0.0001)  # ratio to clustering not using the material as a kernal
+
+
 
     elif FitScheme == 'BinCrossEntropy':
         """ Using the sigmoid function emphasises the effect of data points

@@ -59,8 +59,8 @@ class materialgraphs(object):
             self.GenMG_animation = 0
             interval = 0.1
 
-        the_max = 6
-        the_min = -6
+        the_max = self.CompiledDict['spice']['Vmax']+1
+        the_min = self.CompiledDict['spice']['Vmin']-1
         max = the_max+interval
         self.x1 = np.arange(the_min, max, interval)
         self.x2 = np.arange(the_min, max, interval)
@@ -70,6 +70,11 @@ class materialgraphs(object):
         max = the_max+interval
         self.x1_fast = np.arange(the_min, max, interval)
         self.x2_fast = np.arange(the_min, max, interval)
+
+        interval = 0.2
+        max = the_max+interval
+        self.x1_sweep = np.arange(the_min, max, interval)
+        self.x2_sweep = np.arange(the_min, max, interval)
 
         # Load the training data
         train_data_X, train_data_Y = Load_Data('train', self.CompiledDict)  # self.ParamDict['TestVerify'] st to 0, so all points plotted on MG
@@ -386,12 +391,8 @@ class materialgraphs(object):
         print("Vary Vconfig for a defualt_genome ...")
         tic = time.time()
 
-        the_max = 10
-        the_min = -10
-        interval = 0.2
-        max = the_max+interval
-        x1_VC = np.arange(the_min, max, interval)
-        x2_VC = np.arange(the_min, max, interval)
+        x1_VC = self.x1_sweep
+        x2_VC = self.x2_sweep
 
 
 
@@ -400,14 +401,15 @@ class materialgraphs(object):
         plt.rc('ytick', labelsize=7)    # fontsize of the tick labels
 
         if self.NetworkDict['num_config'] == 1:
-            Vconfig_1 = np.array([-6, -3, 0, 3, 6])
-            Vconfig_2 = np.array([0])
+            Vconfig_1 = np.asarray([-6, -3, 0, 3, 6])
+            Vconfig_1 = np.asarray([0, 2, 4, 6])
+            Vconfig_2 = np.asarray([0])
             rows, cols = len(Vconfig_1), len(Vconfig_2)
             fig, ax = plt.subplots(rows, sharex='col')
             cb_ax = fig.add_axes([0.8, 0.1, 0.02, 0.8])
         elif self.NetworkDict['num_config'] == 2:
-            Vconfig_1 = np.array([-6, -3, 0, 3, 6])
-            Vconfig_2 = np.array([6, 3, 0, -3, -6])
+            Vconfig_1 = np.asarray([-6, -3, 0, 3, 6])
+            Vconfig_2 = np.asarray([6, 3, 0, -3, -6])
             rows, cols = len(Vconfig_1), len(Vconfig_2)
             fig, ax = plt.subplots(rows, cols,
                                    sharex='col',
@@ -447,7 +449,7 @@ class materialgraphs(object):
 
 
         # find the bounds matrix representing the class and proximity to the class boundary
-        pop_array = np.array(pop_list)
+        pop_array = np.asarray(pop_list)
 
         responceY_list, op_list_Glist = self.Find_Class(pop_array, x1_VC, x2_VC, custom_Dict)
 
@@ -502,12 +504,8 @@ class materialgraphs(object):
         print("Vary Input perm's (shuffle) for a defualt_genome ...")
         tic = time.time()
 
-        the_max = 5
-        the_min = -5
-        interval = 0.2
-        max = the_max+interval
-        x1_PC = np.arange(the_min, max, interval)
-        x2_PC = np.arange(the_min , max, interval)
+        x1_PC = self.x1_sweep
+        x2_PC = self.x2_sweep
 
         # select a size for grid of sub plots
         rows, cols = 4, 4
@@ -521,7 +519,7 @@ class materialgraphs(object):
         if rows*cols >= Num_Perms:
             rows = 2
             cols = 3
-        perm_array = np.random.choice(perm_options, rows*cols, replace=False)  # select a random array of values from input array
+        perm_array = np.random.choice(perm_options, rows*cols, replace=False)  # select a random asarray of values from input asarray
         perm_list = []
         pop_list = []
         OW_list_list = []
@@ -540,7 +538,7 @@ class materialgraphs(object):
                     perm = 0
                 else:
                     # Randomly select some perms to plot
-                    perm = perm_array[k]  # select a value from the random array
+                    perm = perm_array[k]  # select a value from the random asarray
 
                 # save perm to a list
                 perm_list.append(perm)  # save the perms used
@@ -552,7 +550,7 @@ class materialgraphs(object):
                 temp = []
                 for i in range(self.NetworkDict['num_config']):
                     temp.append(0)
-                defualt_genome.append(np.asarray(temp))
+                defualt_genome.append(np.asarray(temp, dtype=object))
 
                 # Assign perm (i.e the shuffle of inputs)
                 defualt_genome.append(np.asarray([perm]))
@@ -602,7 +600,7 @@ class materialgraphs(object):
 
 
         # find the bounds matrix representing the class and proximity to the class boundary
-        pop_array = np.array(pop_list)
+        pop_array = np.asarray(pop_list)
         #print('pop_array\n', pop_array)
         bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1_PC, x2_PC, custom_Dict)
 
@@ -679,12 +677,8 @@ class materialgraphs(object):
             print("Aborting")
             return
 
-        the_max = 5
-        the_min = -5
-        interval = 0.2
-        max = the_max+interval
-        x1_data = np.arange(the_min, max, interval)
-        x2_data = np.arange(the_min, max, interval)
+        x1_data = self.x1_sweep
+        x2_data = self.x2_sweep
 
         # create agrid of sub plots
         if assending == 0:
@@ -727,7 +721,7 @@ class materialgraphs(object):
                 for i in range(self.NetworkDict['num_config']):
                     temp.append(0)
 
-                defualt_genome.append(np.asarray(temp))
+                defualt_genome.append(np.asarray(temp, dtype=object))
 
                 # Assign no output weightings, or random output weightings
                 temp = []
@@ -754,9 +748,9 @@ class materialgraphs(object):
                     temp.append(weights[0])
                     temp.append(weights[1])
                     OW_list_list.append(weights)
-                defualt_genome.append(np.asarray(temp))
+                defualt_genome.append(np.asarray(temp, dtype=object))
 
-                pop_list.append(np.asarray(defualt_genome))
+                pop_list.append(np.asarray(defualt_genome, dtype=object))
 
 
                 # iterate k to select the next random perm
@@ -764,7 +758,7 @@ class materialgraphs(object):
 
 
         # find the bounds matrix representing the class and proximity to the class boundary
-        pop_array = np.array(pop_list)
+        pop_array = np.asarray(pop_list)
         #print(pop_array)
         bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1_data, x2_data, custom_Dict)
 
@@ -812,14 +806,8 @@ class materialgraphs(object):
             print("Aborting")
             return
 
-        the_max = 5
-        the_min = -5
-        interval = 0.2
-        max = the_max+interval
-        x1 = np.arange(the_min, max, interval)
-        x2 = np.arange(the_min, max, interval)
-
-
+        x1 = self.x1_sweep
+        x2 = self.x2_sweep
 
         # Produce a sub plot in a grid format
         plt.rc('xtick', labelsize=7)    # fontsize of the tick labels
@@ -865,22 +853,22 @@ class materialgraphs(object):
             for i in range(self.NetworkDict['num_config']):
                 temp.append(0)
             #temp[-1] = 2  # set last config to non-zero
-            defualt_genome.append(np.asarray(temp))
+            defualt_genome.append(np.asarray(temp, dtype=object))
 
             temp = []
             weights = weight_list[:, k]
             temp.append(weights[0])
             temp.append(weights[1])
             OW_list_list.append(list(weights))
-            defualt_genome.append(np.asarray(temp))
+            defualt_genome.append(np.asarray(temp, dtype=object))
 
-            pop_list.append(np.array(defualt_genome))
+            pop_list.append(np.asarray(defualt_genome, dtype=object))
 
             # iterate k to select the next random perm
             k = k + 1
 
         # find the bounds matrix representing the class and proximity to the class boundary
-        pop_array = np.array(pop_list)
+        pop_array = np.asarray(pop_list)
         #print(pop_array)
         bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1, x2, custom_Dict)
 
@@ -925,14 +913,8 @@ class materialgraphs(object):
             print("Aborting")
             return
 
-        the_max = 5
-        the_min = -5
-        interval = 0.2
-        max = the_max+interval
-        x1 = np.arange(the_min, max, interval)
-        x2 = np.arange(the_min, max, interval)
-
-
+        x1 = self.x1_sweep
+        x2 = self.x2_sweep
 
         # Produce a sub plot in a grid format
         plt.rc('xtick', labelsize=7)    # fontsize of the tick labels
@@ -977,22 +959,22 @@ class materialgraphs(object):
             temp = []
             for i in range(self.NetworkDict['num_config']):
                 temp.append(0)
-            defualt_genome.append(np.asarray(temp))
+            defualt_genome.append(np.asarray(temp, dtype=object))
 
             temp = []
             weights = weight_list[:, k]
             temp.append(weights[0])
             temp.append(weights[1])
             OW_list_list.append(list(weights))
-            defualt_genome.append(np.asarray(temp))
+            defualt_genome.append(np.asarray(temp, dtype=object))
 
-            pop_list.append(np.array(defualt_genome))
+            pop_list.append(np.asarray(defualt_genome, dtype=object))
 
             # iterate k to select the next random perm
             k = k + 1
 
         # find the bounds matrix representing the class and proximity to the class boundary
-        pop_array = np.array(pop_list)
+        pop_array = np.asarray(pop_list)
         #print(pop_array)
         bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1, x2, custom_Dict)
 
@@ -1054,12 +1036,8 @@ class materialgraphs(object):
             print("Aborting")
             return
 
-        the_max = 5
-        the_min = -5
-        interval = 0.2
-        max = the_max+interval
-        x1 = np.arange(the_min, max, interval)
-        x2 = np.arange(the_min, max, interval)
+        x1 = self.x1_sweep
+        x2 = self.x2_sweep
 
         # create agrid of sub plots
         if assending == 0:
@@ -1101,7 +1079,7 @@ class materialgraphs(object):
                 temp = []
                 for i in range(self.NetworkDict['num_config']):
                     temp.append(0)
-                defualt_genome.append(np.asarray(temp))
+                defualt_genome.append(np.asarray(temp, dtype=object))
 
                 # Assign no output weightings, or random output weightings
                 temp = []
@@ -1128,15 +1106,15 @@ class materialgraphs(object):
                     temp.append(weights[0])
                     temp.append(weights[1])
                     OW_list_list.append(weights)
-                defualt_genome.append(np.asarray(temp))
+                defualt_genome.append(np.asarray(temp, dtype=object))
 
-                pop_list.append(np.array(defualt_genome))
+                pop_list.append(np.asarray(defualt_genome, dtype=object))
 
                 # iterate k to select the next random perm
                 k = k + 1
 
         # find the bounds matrix representing the class and proximity to the class boundary
-        pop_array = np.array(pop_list)
+        pop_array = np.asarray(pop_list)
         #print(pop_array)
         bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1, x2, custom_Dict)
 
@@ -1192,12 +1170,8 @@ class materialgraphs(object):
             print("Aborting")
             return
 
-        the_max = 5
-        the_min = -5
-        interval = 0.2
-        max = the_max+interval
-        x1 = np.arange(the_min, max, interval)
-        x2 = np.arange(the_min, max, interval)
+        x1 = self.x1_sweep
+        x2 = self.x2_sweep
 
         # create weights list
         r0 = np.arange(0,1.2,0.2)
@@ -1238,22 +1212,22 @@ class materialgraphs(object):
             temp = []
             for i in range(self.NetworkDict['num_config']):
                 temp.append(0)
-            defualt_genome.append(np.asarray(temp))
+            defualt_genome.append(np.asarray(temp, dtype=object))
 
             temp = []
             weights = weight_list[:, k]
             temp.append(weights[0])
             temp.append(weights[1])
             OW_list_list.append(list(weights))
-            defualt_genome.append(np.asarray(temp))
+            defualt_genome.append(np.asarray(temp, dtype=object))
 
-            pop_list.append(np.array(defualt_genome))
+            pop_list.append(np.asarray(defualt_genome, dtype=object))
 
             # iterate k to select the next random perm
             k = k + 1
 
         # find the bounds matrix representing the class and proximity to the class boundary
-        pop_array = np.array(pop_list)
+        pop_array = np.asarray(pop_list)
         #print(pop_array)
         bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1, x2, custom_Dict)
 
@@ -1297,12 +1271,8 @@ class materialgraphs(object):
             print("Aborting")
             return
 
-        the_max = 5
-        the_min = -5
-        interval = 0.2
-        max = the_max+interval
-        x1 = np.arange(the_min, max, interval)
-        x2 = np.arange(the_min, max, interval)
+        x1 = self.x1_sweep
+        x2 = self.x2_sweep
 
         # create weights list
         r0 = np.arange(0,1.2,0.2)
@@ -1343,22 +1313,22 @@ class materialgraphs(object):
             temp = []
             for i in range(self.NetworkDict['num_config']):
                 temp.append(0)
-            defualt_genome.append(np.asarray(temp))
+            defualt_genome.append(np.asarray(temp, dtype=object))
 
             temp = []
             weights = weight_list[:, k]
             temp.append(weights[0])
             temp.append(weights[1])
             OW_list_list.append(list(weights))
-            defualt_genome.append(np.asarray(temp))
+            defualt_genome.append(np.asarray(temp, dtype=object))
 
-            pop_list.append(np.array(defualt_genome))
+            pop_list.append(np.asarray(defualt_genome, dtype=object))
 
             # iterate k to select the next random perm
             k = k + 1
 
         # find the bounds matrix representing the class and proximity to the class boundary
-        pop_array = np.array(pop_list)
+        pop_array = np.asarray(pop_list)
         #print(pop_array)
         bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1, x2, custom_Dict)
 
@@ -1415,20 +1385,15 @@ class materialgraphs(object):
         print("Vary Vconfig 3 for a defualt_genome ...")
         tic = time.time()
 
-        the_max = 5
-        the_min = -5
-        interval = 0.25
-        max = the_max+interval
-        x1_VC = np.arange(the_min, max, interval)
-        x2_VC = np.arange(the_min, max, interval)
-
+        x1_VC = self.x1_sweep
+        x2_VC = self.x2_sweep
 
         # # produce multiple graphs for different Vconfig3
         for Vconfig_3 in [-6, -3, 0, 3, 6]:
 
             if self.NetworkDict['num_config'] == 3:
-                Vconfig_1 = np.array([-6, -3, 0, 3, 6])
-                Vconfig_2 = np.array([-6, -3, 0, 3, 6])
+                Vconfig_1 = np.asarray([-6, -3, 0, 3, 6])
+                Vconfig_2 = np.asarray([-6, -3, 0, 3, 6])
                 rows, cols = len(Vconfig_1), len(Vconfig_2)
                 fig, ax = plt.subplots(rows, cols,
                                        sharex='col',
@@ -1463,12 +1428,12 @@ class materialgraphs(object):
                         if i == 2:
                             temp.append(Vconfig_3)
                         j = j + 1
-                    defualt_genome.append(np.asarray(temp))
-                    pop_list.append(defualt_genome)
+                    defualt_genome.append(np.asarray(temp, dtype=object))
+                    pop_list.append(defualt_genome, dtype=object)
 
             #print("pop_list:\n", pop_list)
             # find the bounds matrix representing the class and proximity to the class boundary
-            pop_array = np.array(pop_list)
+            pop_array = np.asarray(pop_list)
             bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1_VC, x2_VC, custom_Dict)
 
 
@@ -1530,7 +1495,7 @@ class materialgraphs(object):
             rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
             rY_list.attrs['num_plots'] = len(bounds_matrix_list)
 
-            x_data = np.array([x1_VC, x2_VC])
+            x_data = np.asarray([x1_VC, x2_VC])
             G_sub.create_dataset('x_data', data=x_data)  # write xy data
 
             extent = [x1_VC.min(), x1_VC.max(), x2_VC.min(), x2_VC.max()]

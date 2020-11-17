@@ -215,8 +215,8 @@ def generate_neuromorphic_netork(CompiledDict, genome, Input_V, pulse_Tp, cir=0)
     for node in all_nodes:
         if node[0] == 'i':
             circuit.R('%s_contact' % (node), '%s_conn' % (node), node, SpiceDict['contact_Res']@u_Ohm)
-        elif node[0] == 'o':
-            circuit.R('%s_contact' % (node), node, '%s_conn' % (node), SpiceDict['contact_Res']@u_Ohm)
+        #elif node[0] == 'o':
+        #    circuit.R('%s_contact' % (node), node, '%s_conn' % (node), SpiceDict['contact_Res']@u_Ohm)
         elif node[:3] == 'mnC':
             circuit.R('%s_contact' % (node), '%s_conn' % (node), node, SpiceDict['contact_Res']@u_Ohm)
 
@@ -333,7 +333,7 @@ def generate_neuromorphic_netork(CompiledDict, genome, Input_V, pulse_Tp, cir=0)
     # #################################################
     if SpiceDict['shunt_R'] != 'none':
         for i in range(NetworkDict['num_output']):
-            Out_Node = "op%d_conn" % (i+1)
+            Out_Node = "op%d" % (i+1)
             # print("Node out", Out_Node)
             circuit.R("shunt%d" % (i+1), Out_Node, circuit.gnd, SpiceDict['shunt_R']@u_kOhm)
 

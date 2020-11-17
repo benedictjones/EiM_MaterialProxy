@@ -72,7 +72,7 @@ def interpret_output_dc(sim_res_dict, sim_type, num_output, num_samples):
     # extract output voltages
     Vout = np.zeros((num_samples, num_output))
     for i in range(num_output):
-        key = "op%d_conn" % (i+1)
+        key = "op%d" % (i+1)
         for inst, val in enumerate(sim_res_dict[key]):
             Vout[inst,i] = val
 
@@ -125,7 +125,7 @@ def interpret_output_pulse(sim_res_dict, num_nodes, num_output,
 
         # Loop though output nodes
         for i in range(num_output):
-            key = "op%d_conn" % (i+1)
+            key = "op%d" % (i+1)
             #print(s, i)
             v_temp = sim_res_dict[key]
             Vout[s, i] = v_temp[idx]

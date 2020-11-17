@@ -129,8 +129,11 @@ def GenSimParam(param_file='', algorithm='na', save_param_file=0, pt='na', NoGen
     if CompiledDict['genome']['perm_crossp_model'] != 'none' and CompiledDict['genome']['shuffle_gene'] == 0:
         raise ValueError("Error (Settings): Perm_crossp model set, but shuffle gene is off!")
 
-
-
+    # save num "final layer" output nodes
+    if CompiledDict['DE']['num_readout_nodes'] == 'na':
+        CompiledDict['DE']['num_output_readings'] = CompiledDict['network']['num_output']
+    else:
+        CompiledDict['DE']['num_output_readings'] = CompiledDict['DE']['num_readout_nodes']
 
     # # # # # # # # # # # # # # # # # #
     # # # Initialise the bounds matrix
@@ -330,6 +333,7 @@ def GenSimParam(param_file='', algorithm='na', save_param_file=0, pt='na', NoGen
             del CompiledDict['decoder']
 
     else:
+
         CompiledDict['DE']['popsize'] = CompiledDict['encoder']['popsize']*CompiledDict['decoder']['popsize']
 
     # # # # # # # # # # # # # # # # # # # # # # # #

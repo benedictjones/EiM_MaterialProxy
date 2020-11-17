@@ -1,6 +1,11 @@
-# EiM_MaterialProxy
-Public release of EiM model which integrates NGSpice with Python via PySpice.
-This supports the paper **Co-design of algorithms and nanomaterials for use as Evolvable Processors**.
+# EiM Material Proxy
+This code consists of an EiM model that uses differential evolution.
+The material is replaced with a SPICE based model, produced by integrating NGSpice with Python via PySpice.
+This supports the paper:
+
+Title: Co-design of algorithms and nanomaterials for use as Evolvable Processors
+Authors: Benedict Jones, John Chouard, Bianca C.C. Branco, Eléonore G.B. Vissol-Gaudin, Christopher Pearson, Dagou A. Zeze, Michael C. Petty, Christopher Groves
+
 
 ## System Requirements
 
@@ -11,11 +16,10 @@ For best performance:
   - Use 8GB of RAM or more
   - A CPU with multiple cores (the number of cores to be used can be selected)
 
+
 ## Instillation
 
-Please **download or git clone the repository**.  
-Following this, ensure that the correct packages and NGSpice are installed.
-
+Having downloaded the repository, ensure that the correct packages and NGSpice are installed.
 Normal installation time will be around 5 minutes (depending on upload/download speed).
 
 ### Step 1 - Packages
@@ -30,7 +34,7 @@ To run the model/code in this repository please **install the correct modules** 
     
     (You may need to upgrade previous versions, e.g. ```run pip install --upgrade --force-reinstall h5py```)
     
-2. Install the provided conda environment called **eim_env.yml** (for windows only). This can also be accessed on https://anaconda.org/benedictjones/eim_env .  
+2. Install the provided conda environment called **eim_env.yml** (for windows only). 
 To install the environment, open a terminal in the root folder and run:  
 ```conda env create -f eim_env.yml -n eim_env```  
  To check the enviroment has installed correctly run:  
@@ -44,7 +48,7 @@ For PySpice to work **NGSpice must also be installed**.
 Note: this code has been developed using NGSpice 31.
 
 #### Windows
-A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be **placed in the appropriate location**.  
+A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location.  
 For PySpice 1.4 (the current release) place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*.  
     e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
   
@@ -138,3 +142,8 @@ To recreate the papers results, run exp_paper.py. This will use/load the same 10
 USing the selected dataset, the DE algorithm repeats itself 10 times on each of the networks, each run has 40 iterations/generations.
 This is repeated for the different algorithm feature combinations (shuffle, input and output weights).
 Depending on the speed of your processor and the number of cores used, the **execution time** may be up to **a week**.
+
+## Data Sets
+
+The datasets used in the paper (the 2DDS and con2DDS) can be found as hdf5 files in EiM_MaterialProxy\Module_LoadData\data .
+
