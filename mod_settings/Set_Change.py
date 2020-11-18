@@ -58,7 +58,7 @@ def ChangeSettings(param_file='', pt='na', **kwargs):
             """
 
         if len(failed_key) != 0:
-            print("\nWarning (Set_Change.py): Failed Assignment of keys include:", failed_key, "\n")
+            raise ValueError("\nWarning (Set_Change.py): Failed Assignment of keys include:", failed_key, "\n")
 
     # ################################################################
     # # Toggle vales if pre-training

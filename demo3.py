@@ -17,22 +17,23 @@ if __name__ == "__main__":
 
     # # load in previous files to use previous material processors
     Model = 'D_RN'  # select material model
+
     if Model == 'R_RN':
         # load a Resistor Random Netowrk from a target file
         # this file contains 10 circuits each with exp_num_input=2, exp_num_output=2, exp_num_config=3
-        ReUse_dir = 'Results/2020_04_06/__11_04_56__2DDS__EXP_NewVaryScheme_R_RN'
+        ReUse_dir = 'Results/_2020_11_17_eg/__17_26_54__2DDS__R_RN__EiM'
     elif Model == 'D_RN':
         # load a Diode Random Netowrk from a target file
         # this file contains 10 circuits each with exp_num_input=2, exp_num_output=2, exp_num_config=3
-        ReUse_dir = 'Results/2020_04_07/__04_31_06__2DDS__EXP_NewVaryScheme_D_RN'
+        ReUse_dir = 'Results/_2020_11_17_eg/__17_24_56__2DDS__D_RN__EiM'
 
 
     # # Run Evolutionary Process
-    output_dir = RunEiM(num_circuits=1, num_repetitions=1,
+    output_dir = RunEiM(num_circuits=3, num_repetitions=1,
                         its=10, popsize=10,
                         #
                         model=Model,  # R_RN or D_RN
-                        input=2, num_output=2, num_config=2,  # number of each node type
+                        num_input=2, num_output=2, num_config=2,  # number of each node type
                         #
                         plotMG=1,  # Sets surface plots of Y to be produced.
                         plot_defualt=1,

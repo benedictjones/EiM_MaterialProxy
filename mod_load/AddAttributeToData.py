@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 import os
 import matplotlib
+import h5py
 
 from mod_load.LoadData import Load_Data
 from mod_settings.Set_Load import LoadSettings
@@ -90,12 +91,14 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
         os.makedirs(dir)
 
 
-    # save
-    save_loc = "%s/%d_Rep%d_DataWithWeigthAttribute.h5" % (dir, cir, rep)
-    data_all.to_hdf(save_loc, key=data_type, mode='a')
+    # # save
+
+    #Old save
+    save_loc = "%s/DataWithWeigthAttribute.h5" % (dir)
+    data_all.to_hdf(save_loc, key="cir%d_rep%d/%s" % (cir, rep, data_type), mode='a')
 
 
-    # plot if it is toggled on
+    # # plot if it is toggled on
     if ParamDict['PlotExtraAttribute'] == 1:
 
 

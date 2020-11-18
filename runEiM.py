@@ -145,6 +145,7 @@ def RunEiM(param_file='',
 
             # add in zeros and copy best genome to ensure one loop fills up
             # itteration number sized list
+            best_fit_list = list(best_fit_list)
             if len(best_fit_list) < prm['DE']['its']+1:  # +1 is to include initial pop fitness
                 location = len(best_fit_list)
                 while True:
@@ -422,13 +423,13 @@ if __name__ == "__main__":
 
     ReUse_dir = 'Results/2020_11_11/__10_41_27__con2DDS__real_D_RN__EiM'
 
-    RunEiM(num_circuits=1, num_repetitions=1,
+    RunEiM(num_circuits=5, num_repetitions=1,
            model='NL_RN',  # R_RN, D_RN, NL_RN, NL_uRN, custom_RN
            #IntpScheme='raw',
            #FitScheme='KmeanDist',
            #num_readout_nodes=2, OutWeight_gene=1, IntpScheme='HOW',
            #ReUse_dir=ReUse_dir,
-           num_processors=10)
+           num_processors=1)
 
 #
 

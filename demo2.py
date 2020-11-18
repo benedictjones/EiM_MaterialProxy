@@ -21,6 +21,11 @@ Do this by setting num_repetitions to more then one.
 Note: the more repetitions the longer it will take!!
 
 Again, results will be saved in the Results folder at the appropriate date and time.
+
+Estimated time to complete:
+ > Windows Anadonda ~7min  (single core limited, large multiprocessing initiation time)
+ > Linux ~20s
+
 """
 
 
@@ -31,7 +36,7 @@ if __name__ == "__main__":
                         its=10, popsize=10,
                         #
                         model='D_RN',  # R_RN or D_RN
-                        input=2, num_output=2, num_config=2,  # number of each node type
+                        num_input=2, num_output=2, num_config=2,  # number of each node type
                         #
                         plotMG=1,  # Sets surface plots of Y to be produced.
                         plot_defualt=1,

@@ -72,6 +72,9 @@ def Load_Data(type, CompiledDict):
         X_input_attr, Y_class = Load_NewWeighted_Data(data_type, CompiledDict['network']['num_input'], CompiledDict['DE']['training_data'])
 
 
+
+
+
     """print("X_input_attr\n", X_input_attr[range(3),:])
     print("Y_class\n", Y_class)
     print(CompiledDict['DE']['training_data'])

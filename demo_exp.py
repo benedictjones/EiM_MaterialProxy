@@ -1,14 +1,22 @@
 from datetime import datetime
 import os
 
-from DE import RunDE
-from Module_Analysis.Analysis import analysis
+from runEiM import RunEiM
+from mod_analysis.Analysis import analysis
+
+"""
+
+Example of how the RunEiM function can be used to repeate EiM with different
+processors, allowing different paramaters to be compared to one anouther.
+
+"""
+
 
 
 if __name__ == "__main__":
 
     # set the model types which the experiments will run over
-    Model_types = ['D_RN']  # ['R_RN', 'D_RN']
+    Model_types = ['D_RN']  # ['R_RN', 'D_RN', 'NL_RN']
 
     #
 
@@ -17,7 +25,7 @@ if __name__ == "__main__":
     # Begin Experiment
     for Model in Model_types:
         print("*************************************************************")
-        print("Experiments 1 - Material Model:", Model)
+        print("Experiment - Material Model:", Model)
         print("*************************************************************")
 
         # # # # # # # # # # # #
@@ -58,29 +66,35 @@ if __name__ == "__main__":
         for Param in Param_array:
 
             print("##################################################")
-            print("Experiment", ex_loop, "Out of:", num_experiments-1)
+            print("Experiment", ex_loop+1, "Out of:", num_experiments)
             print("##################################################")
 
-            dir = RunDE(exp_num_circuits=3, exp_num_repetitions=3,
-                        experiment=1, exp_name=Exp_name,
-                        experiment_file=experiment_file, experiment_loop=ex_loop,
-                        #
-                        exp_its=15, exp_popsize=20,
-                        exp_the_model=Model,
-                        exp_num_input=num_inputs, exp_num_output=2, exp_num_config=3,
-                        #
-                        plotMG=1,
-                        #
-                        exp_shuffle_gene=Param_shuffle[ex_loop],
-                        exp_InWeight_gene=0,
-                        exp_OutWeight_gene=0,
-                        #
-                        exp_training_data=training_data,
-                        exp_ReUse_Circuits=1, exp_ReUse_dir=ReUse_dir,  # makes susequent experimets use same material models
-                        exp_TestVerify=1,
-                        #
-                        exp_num_processors=4  # Number of cores to be used
-                        )
+            dir = RunEiM(num_circuits=3, num_repetitions=2,
+                         experiment=1, exp_name=Exp_name,
+                         experiment_file=experiment_file, experiment_loop=ex_loop,
+                         #
+                         its=40, popsize=20,
+                         model=Model,
+                         num_input=num_inputs, num_output=2, num_config=3,
+                         #
+                         plotMG=0, MG_vary_Vconfig=0, MG_vary_PermConfig=0,  # plot MG graphs?
+                         #
+                         save_fitvit=0,
+                         #
+                         shuffle_gene=Param_shuffle[ex_loop], perm_crossp_model='none',
+                         InWeight_gene=0,
+                         OutWeight_gene=0,
+                         #
+                         training_data=training_data,
+                         ReUse_dir=ReUse_dir,  # makes susequent experimets use same material models
+                         TestVerify=1,  # USe verification of trained network
+                         #
+                         Add_Attribute_To_Data=0,
+                         PlotExtraAttribute=0,
+                         #
+                         num_processors=4  # Number of cores to be used
+                         )
+
 
 
             # # # # # # # # # # # #

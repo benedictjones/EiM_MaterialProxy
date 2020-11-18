@@ -37,9 +37,7 @@ def Load_NewWeighted_Data(type, num_input, training_data):
     #
 
     if num_input != len(data_X[0, :]):
-        print(" ")
-        print("Error (LoadTrainingData.py): Num inputs not compatible with training data")
-        print("ABORTED")
-        exit()
+        raise ValueError("Error (LoadTrainingData.py): Num inputs not compatible with training data")
+
 
     return data_X, data_Y

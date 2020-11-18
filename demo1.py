@@ -25,6 +25,11 @@ will find a configuration which achieve 0% error before the evolutionary
 period expires. Try changing the data set to the more challenging
 concentric 2d data set (con2DDS).
 Or varying the algorithm features (i.e. shuffle gene, input or output weights).
+
+Estimated time to complete:
+ > Windows Anadonda ~15s
+ > Linux ~3s (more cores = faster)
+
 """
 
 
@@ -35,7 +40,7 @@ if __name__ == "__main__":
                         its=10, popsize=10,
                         #
                         model='D_RN',  # R_RN or D_RN
-                        input=2, num_output=2, num_config=2,  # number of each node type
+                        num_input=2, num_output=2, num_config=2,  # number of each node type
                         #
                         plotMG=1,  # Sets surface plots of Y to be produced.
                         plot_defualt=1,

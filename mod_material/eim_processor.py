@@ -7,7 +7,7 @@ import h5py
 import sys
 
 from random import random
-from multiprocessing import Pool
+from multiprocessing import Pool, Process
 from functools import partial
 
 from mod_settings.Set_Load import LoadSettings
@@ -113,7 +113,7 @@ class material_processor(object):
         # # if we are using a DC/op simulation, just do all genomes in one
         # instance of NGSpice - this can be faster
         use_MP = 1
-        if self.SpiceDict['sim_type'] == 'sim_dc' and genome_list.shape[0] > 1 and sys.platform == "win32":
+        if self.SpiceDict['sim_type'] == 'sim_dc' and genome_list.shape[0] > 1 and sys.platform == "win32":  #  and 1==-1
             # Hope was this would stop the memory leak - doesn't seem to
 
             if str(input_data) == 'na':
@@ -127,7 +127,11 @@ class material_processor(object):
             # just exit. Not yet sure why.
             approx_num_inst = len(data_X[:,0])*genome_list.shape[0]
             if approx_num_inst < 20000:
-                results_GenomeList = self._solve_all_processors_(genome_list, cir, rep, the_data, input_data, output_data)
+                #results_GenomeList = self._solve_all_processors_(genome_list, cir, rep, the_data, input_data, output_data)
+                with Pool(processes=1) as pool:
+                    func = partial(self._solve_all_processors_, cir=cir, rep=rep, the_data=the_data, input_data=input_data, output_data=output_data)
+                    results_GenomeList_list = pool.map(func, [genome_list])
+                results_GenomeList = results_GenomeList_list[0]
                 use_MP = 0
 
 

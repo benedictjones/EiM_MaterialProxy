@@ -102,7 +102,7 @@ spice:
 
   # # NL Material correlation factor, vaired between [-1,1] varies actual
   # covarience between its max/min
-  corr : 0.5
+  corr : 0
 
   # # Used for uniform dist selection
   material_a_min :  33 # 3.0e+6
