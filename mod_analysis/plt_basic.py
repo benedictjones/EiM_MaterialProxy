@@ -38,7 +38,7 @@ class plotting(object):
 
         # # Assign paramaters to self
         if sel_dict == 'na':
-            self.sel_dict = {'plt_mean':1,'plt_std':1,'plt_finalveri':1,'plt_popmean':1,'plt_hist':1}
+            self.sel_dict = {'plt_mean':1,'plt_std':1,'plt_finalveri':1,'plt_popmean':1,'plt_box':1,'plt_hist':1}
         else:
             self.sel_dict = sel_dict
         self.Save_NotShow = Save_NotShow
@@ -67,7 +67,7 @@ class plotting(object):
         matplotlib .rcParams['lines.markeredgewidth'] = 0.5
 
         if titles == 'off':
-            matplotlib .rcParams["figure.figsize"] = [3.5,2.7]
+            matplotlib .rcParams["figure.figsize"] = [3.3,2.7]
         else:
             matplotlib .rcParams["figure.figsize"] = [6.4, 4.8]
         matplotlib .rcParams["figure.autolayout"] = True
@@ -77,6 +77,7 @@ class plotting(object):
         self.legends = legends
         # for hist
         self.Exp_list_FinalDist = []
+        self.Exp_list_Veri = []
         self.hist_the_lablel = []
 
         # save pop size
@@ -208,10 +209,13 @@ class plotting(object):
 
             self.plt_popmean()
 
+
+
             #
 
             # store histogram data of final fitnesses
             self.Exp_list_FinalDist.append(self.fit_matrix[:,-1])
+            self.Exp_list_Veri.append(self.veri_fit_list)
             if titles == 'on':
                 if self.ParamDict['TestVerify'] == 1:
                     self.hist_the_lablel.append("%s %s, BestFit=%.4f" % (self.new_FileRefNames[self.dir_loop], self.new_Param_array[self.dir_loop], min(self.fit_matrix[:,-1])))
@@ -224,6 +228,9 @@ class plotting(object):
 
         # plot hist
         self.plt_hist()
+
+        self.plt_box(type='Training')
+        self.plt_box(type='Test')
 
         # #  show Exp graphs
         if self.show == 1 and self.Save_NotShow == 0:
@@ -487,6 +494,49 @@ class plotting(object):
                         fig.savefig(fig_path, dpi=self.dpi)
                         plt.close(fig)
 
+    #
+
+    #
+
+    #
+
+    # #######################################################
+    # Plot final fitness vs verification fitness
+    # #######################################################
+    def plt_box(self, type='Training'):
+        if self.sel_dict['plt_box'] == 1:
+            if self.ParamDict['TestVerify'] == 1:
+                fig = plt.figure()
+
+                if type == 'Training':
+                    dat = self.Exp_list_FinalDist
+                elif type == 'Test':
+                    dat = self.Exp_list_Veri
+                else:
+                    raise ValueError("Box plot type invalid")
+
+                plt.boxplot(x=dat, labels=self.new_Param_array)
+
+                if self.fig_letter != 'na':
+                    fig.text(0.02, 0.94, self.fig_letter, fontsize=14, fontweight='bold')
+
+                plt.ylabel('%s Fitness' % (type))
+                plt.xlabel('Paramater')
+
+                if self.plt_mean_yaxis != 'na':
+                    plt.ylim(self.plt_mean_yaxis[0], self.plt_mean_yaxis[1])
+                else:
+                    plt.ylim(0, 0.5)
+
+                # # self.show & save plots
+                if self.curr_dir == self.new_DirList[-1]:
+                    if self.Save_NotShow == 1:
+                        if type == 'Training':
+                            fig_path = "%s/ExpALL__FIG_BoxPlot_FinalTrain.%s" % (self.save_dir, self.format)
+                        elif type == 'Test':
+                            fig_path = "%s/ExpALL__FIG_BoxPlot_Test.%s" % (self.save_dir, self.format)
+                        fig.savefig(fig_path, dpi=self.dpi)
+                        plt.close(fig)
     #
 
     #

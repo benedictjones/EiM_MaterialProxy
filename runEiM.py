@@ -378,9 +378,9 @@ def RunEiM(param_file='',
     # ########################################################################
     blockPrint()
     if prm['num_circuits']*prm['num_repetitions'] > 1:
-        sel_dict = {'plt_mean':1,'plt_std':1,'plt_finalveri':1,'plt_popmean':1,'plt_hist':1}
+        sel_dict = {'plt_mean':1,'plt_std':1,'plt_finalveri':1,'plt_popmean':1,'plt_box':1,'plt_hist':1}
     else:
-        sel_dict = {'plt_mean':0,'plt_std':0,'plt_finalveri':0,'plt_popmean':1,'plt_hist':0}
+        sel_dict = {'plt_mean':0,'plt_std':0,'plt_finalveri':0,'plt_popmean':1,'plt_box':0,'plt_hist':0}
 
     print("\nProducing analysis graphs...")
     obj_anly = analysis(new_dir, format='png')
@@ -423,13 +423,13 @@ if __name__ == "__main__":
 
     ReUse_dir = 'Results/2020_11_11/__10_41_27__con2DDS__real_D_RN__EiM'
 
-    RunEiM(num_circuits=5, num_repetitions=1,
-           model='NL_RN',  # R_RN, D_RN, NL_RN, NL_uRN, custom_RN
+    RunEiM(num_circuits=4, num_repetitions=1,
+           model='D_RN',  # R_RN, D_RN, NL_RN, NL_uRN, custom_RN
            #IntpScheme='raw',
            #FitScheme='KmeanDist',
            #num_readout_nodes=2, OutWeight_gene=1, IntpScheme='HOW',
            #ReUse_dir=ReUse_dir,
-           num_processors=1)
+           num_processors=10)
 
 #
 

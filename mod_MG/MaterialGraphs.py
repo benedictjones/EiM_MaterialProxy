@@ -408,8 +408,10 @@ class materialgraphs(object):
             fig, ax = plt.subplots(rows, sharex='col')
             cb_ax = fig.add_axes([0.8, 0.1, 0.02, 0.8])
         elif self.NetworkDict['num_config'] == 2:
-            Vconfig_1 = np.asarray([-6, -3, 0, 3, 6])
-            Vconfig_2 = np.asarray([6, 3, 0, -3, -6])
+            #Vconfig_1 = np.asarray([-6, -3, 0, 3, 6])
+            #Vconfig_2 = np.asarray([6, 3, 0, -3, -6])
+            Vconfig_1 = np.asarray([-5, 0, 5])
+            Vconfig_2 = np.asarray([5, 0, -5])
             rows, cols = len(Vconfig_1), len(Vconfig_2)
             fig, ax = plt.subplots(rows, cols,
                                    sharex='col',
@@ -1429,7 +1431,7 @@ class materialgraphs(object):
                             temp.append(Vconfig_3)
                         j = j + 1
                     defualt_genome.append(np.asarray(temp, dtype=object))
-                    pop_list.append(defualt_genome, dtype=object)
+                    pop_list.append(defualt_genome)
 
             #print("pop_list:\n", pop_list)
             # find the bounds matrix representing the class and proximity to the class boundary

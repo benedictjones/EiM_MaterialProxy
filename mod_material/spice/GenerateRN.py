@@ -4,7 +4,7 @@ import os
 import PySpice
 import random
 import seaborn as sns
-
+import matplotlib.pyplot as plt
 
 from PySpice.Spice.Netlist import Circuit, SubCircuit, SubCircuitFactory
 from PySpice.Unit import *
@@ -152,7 +152,7 @@ def generate_random_netork(CompiledDict, cir):
         h1.fig.suptitle('Correlated Normal Distribution')
         h1.fig.subplots_adjust(top=0.9, bottom=0.1, left=0.15, right=0.95)
         h1.plot_marginals(sns.rugplot, color="#800000", height=.15, clip_on=True)
-        h1.savefig("%s/NormalDistr.png" % (dir_path))
+        h1.savefig("%s/cir%d_NormalDistr.png" % (dir_path, cir))
 
         # # plot correlated uniform ditribution, created from the
         # # transformed normal distributions
@@ -162,8 +162,11 @@ def generate_random_netork(CompiledDict, cir):
         h2.set_axis_labels('Y1', 'Y2', fontsize=16)
         h2.fig.subplots_adjust(top=0.9, bottom=0.1, left=0.15, right=0.95)
         h2.fig.suptitle('Correlated Uniform Distribution')
-        h2.savefig("%s/UniformDistr.png" % (dir_path))
+        h2.savefig("%s/cir%d_UniformDistr.png" % (dir_path, cir))
+
         #"""
+
+        plt.close('all')
 
         # scale to the appropriate a & b ranges
         diff = np.fabs(MaterialDict['material_a_min'] - MaterialDict['material_a_max'])  # absolute val of each el

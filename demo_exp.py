@@ -92,7 +92,7 @@ if __name__ == "__main__":
                          Add_Attribute_To_Data=0,
                          PlotExtraAttribute=0,
                          #
-                         num_processors=4  # Number of cores to be used
+                         num_processors=10  # Number of cores to be used
                          )
 
 

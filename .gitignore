@@ -5,7 +5,9 @@ __pycache__/
 
 # Custom
 Results
+CustomSave
 Experiment_List
+Experiment_List_w
 Temp_Param*.yaml
 test*.py
 z_test*.py

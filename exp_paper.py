@@ -13,7 +13,8 @@ if __name__ == "__main__":
     # set the model types which the experiments will run over
     Model_types = ['R_RN', 'D_RN', 'NL_RN']
 
-    datasets = ['2DDS', 'con2DDS', 'flipped_2DDS']
+    # datasets = ['2DDS', 'con2DDS', 'flipped_2DDS']
+    datasets = ['flipped_2DDS']
 
     #
 
@@ -81,11 +82,13 @@ if __name__ == "__main__":
             ReUse_dir = 'na'  # set defualt to 'na, this is assigned at the end of first loop'
 
             # # load in previous files to use previous material processors
-            """
+            #"""
             if Model == 'R_RN':
-                ReUse_dir = 'Results/2020_04_06/__11_04_56__2DDS__EXP_NewVaryScheme_R_RN'
+                ReUse_dir = 'Results/2020_11_18/__21_56_19__2DDS__EXP_PaperReplication__R_RN__EiM'
             elif Model == 'D_RN':
-                ReUse_dir = 'Results/2020_04_07/__04_31_06__2DDS__EXP_NewVaryScheme_D_RN'
+                ReUse_dir = 'Results/2020_11_18/__22_14_46__2DDS__EXP_PaperReplication__D_RN__EiM'
+            elif Model == 'NL_RN':
+                ReUse_dir = 'Results/2020_11_18/__22_53_47__2DDS__EXP_PaperReplication__NL_RN__EiM'
             else:
                 raise ValueError('Select available material model')
             #"""
@@ -96,20 +99,26 @@ if __name__ == "__main__":
             num_experiments = len(Param_array)
             for Param in Param_array:
 
+                # generate output plots and save rY if it is the first loop
+                save_att = 0
+                if ex_loop == 0:
+                    save_att = 1
+
+                """
                 if Model == 'R_RN' and ex_loop == 0 and training_data == '2DDS':
                     ReUse_dir = 'na'
                 elif Model == 'R_RN':
-                    ReUse_dir = RRN_ReUse_dir
+                    ReUse_dir = 'Results/2020_11_18/__21_56_19__2DDS__EXP_PaperReplication__R_RN__EiM'
 
                 if Model == 'D_RN' and ex_loop == 0 and training_data == '2DDS':
                     ReUse_dir = 'na'
                 elif Model == 'D_RN':
-                    ReUse_dir = DRN_ReUse_dir
+                    ReUse_dir = 'Results/2020_11_18/__22_14_46__2DDS__EXP_PaperReplication__D_RN__EiM'
 
                 if Model == 'NL_RN' and ex_loop == 0 and training_data == '2DDS':
                     ReUse_dir = 'na'
                 elif Model == 'NL_RN':
-                    ReUse_dir = NLRN_ReUse_dir
+                    ReUse_dir = 'Results/2020_11_18/__22_53_47__2DDS__EXP_PaperReplication__NL_RN__EiM'"""
 
 
 
@@ -137,8 +146,8 @@ if __name__ == "__main__":
                              ReUse_dir=ReUse_dir,  # makes susequent experimets use same material models
                              TestVerify=1,  # USe verification of trained network
                              #
-                             Add_Attribute_To_Data=0,
-                             PlotExtraAttribute=0,
+                             Add_Attribute_To_Data=save_att,
+                             PlotExtraAttribute=save_att,
                              #
                              num_processors=11  # Number of cores to be used
                              )
@@ -155,14 +164,14 @@ if __name__ == "__main__":
                         dir_result_file.write(dir)
                         dir_result_file.write("\n")
 
-                    if Model == 'R_RN' and ex_loop == 0 and training_data == '2DDS':
+                    """if Model == 'R_RN' and ex_loop == 0 and training_data == '2DDS':
                         RRN_ReUse_dir = dir
 
                     elif Model == 'D_RN' and ex_loop == 0 and training_data == '2DDS':
                         DRN_ReUse_dir = dir
 
                     elif Model == 'NL_RN' and ex_loop == 0 and training_data == '2DDS':
-                        NLRN_ReUse_dir = dir
+                        NLRN_ReUse_dir = dir"""
 
 
                 else:

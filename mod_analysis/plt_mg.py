@@ -65,6 +65,8 @@ class material_graphs(object):
     def Plt_mg(self, Save_NotShow=0, show=1, Bgeno=0, Dgeno=0, VC=0, VP=0,
                VoW=0, ViW=0, VoW_ani=0, ViW_ani=0, VoiW_ani=1, VloW_ani=1, VliW_ani=1,
                Specific_Cir_Rep='all', PlotOnly='all', format='gif',
+               fig_letter='na',
+               figsize='na',
                titles='on'):
 
         if format != 'gif' and format != 'mp4':
@@ -72,6 +74,7 @@ class material_graphs(object):
         else:
             self.ani_format = format
 
+        self.fig_letter = fig_letter
 
         matplotlib .rcParams['font.family'] = 'Arial' # 'serif'
         matplotlib .rcParams['font.size'] = 8  # tixks and title
@@ -82,10 +85,16 @@ class material_graphs(object):
         matplotlib .rcParams["legend.labelspacing"] = 0.25
         #matplotlib .rcParams["figure.autolayout"] = True
         if titles == 'off':
-            matplotlib .rcParams["figure.figsize"] = [3.5,2.7]
+            matplotlib .rcParams["figure.figsize"] = [3.1,2.9]  # [3.5,2.7]
         else:
             matplotlib .rcParams["figure.figsize"] = [6.4, 4.8]
+
+        if figsize != 'na':
+            matplotlib .rcParams["figure.figsize"] = figsize
+
         matplotlib .rcParams["figure.autolayout"] = False
+
+
 
         matplotlib.rc('pdf', fonttype=42)  # embeds the font, so can import to inkscape
         #matplotlib.rcParams['text.usetex'] = True
@@ -235,10 +244,10 @@ class material_graphs(object):
         if Bgeno == 0 or 'BestGenome' not in MG_items:
             return
 
-        if self.title == 'off':
-            matplotlib .rcParams["figure.figsize"] = [3.5,2.7]
+        """if self.title == 'off':
+            matplotlib .rcParams["figure.figsize"] = [2,1]  # [3.4,2.6] # [3.5,2.7]
         else:
-            matplotlib .rcParams["figure.figsize"] = [6.4, 4.8]
+            matplotlib .rcParams["figure.figsize"] = [6.4, 4.8]"""
 
         # fetch data
         responceY = np.array(MG.get('BestGenome/responceY'))
@@ -258,7 +267,14 @@ class material_graphs(object):
         cbar.set_label("Network Responce Y", fontsize=14)
         cbar.ax.tick_params(labelsize=11)  # cbar ticks size
 
-        plt.subplots_adjust(left=0.125, bottom=0.15, right=0.87, top=0.85)
+        #plt.subplots_adjust(left=0.125, bottom=0.15, right=0.87, top=0.85)
+        plt.subplots_adjust(left=0.15, bottom=0.15, right=0.85, top=0.85)
+
+        if self.fig_letter != 'na':
+            fig.text(0.02, 0.94, self.fig_letter, fontsize=14, fontweight='bold')
+            cbar.remove()
+            plt.draw() #update plot
+            plt.subplots_adjust(left=0.15, bottom=0.15, right=0.9, top=0.9)
 
         # # form genome text
         best_genome_text = fetch_genome_string(best_genome, gen_grouping)
@@ -289,19 +305,19 @@ class material_graphs(object):
 
             if train_data_Y[c] == 1:
                 if cl1_hit == 0:
-                    plt.plot(row[0], row[1],  'o', alpha=0.8, markersize=3.5, label="Class 1",
+                    plt.plot(row[0], row[1],  'o', alpha=0.8, markersize=3.0, label="Class 1",
                              markerfacecolor='#009cffff', markeredgewidth=0.5, markeredgecolor=(1, 1, 1, 1))
                     cl1_hit = 1
                 else:
-                    plt.plot(row[0], row[1],  'o', alpha=0.8, markersize=3.5,
+                    plt.plot(row[0], row[1],  'o', alpha=0.8, markersize=3.0,
                              markerfacecolor='#009cffff', markeredgewidth=0.5, markeredgecolor=(1, 1, 1, 1))
             else:
                 if cl2_hit == 0:
-                    plt.plot(row[0], row[1],  '*', alpha=0.8, markersize=5.5, label="Class 2",
+                    plt.plot(row[0], row[1],  '*', alpha=0.8, markersize=5.0, label="Class 2",
                              markerfacecolor='#ff8800ff', markeredgewidth=0.5, markeredgecolor=(1, 1, 1, 1))
                     cl2_hit = 1
                 else:
-                    plt.plot(row[0], row[1],  '*', alpha=0.8, markersize=5.5,
+                    plt.plot(row[0], row[1],  '*', alpha=0.8, markersize=5.0,
                              markerfacecolor='#ff8800ff', markeredgewidth=0.5, markeredgecolor=(1, 1, 1, 1))
             c = c + 1
         plt.legend(markerscale=1.5, fancybox=True)  # , facecolor='k'
@@ -336,7 +352,7 @@ class material_graphs(object):
         gen_grouping = np.array(MG.get('DefaultGenome/gen_grouping'))
         defualt_genome_text = fetch_genome_string(defualt_genome, gen_grouping)
 
-        fig = plt.figure(2)
+        fig = plt.figure()
         plt.imshow(responceY.T, origin="lower",
                    extent=the_extent,
                    interpolation=self.interp, vmin=self.min_colour_val, vmax=self.max_colour_val, cmap=self.my_cmap)
@@ -364,6 +380,7 @@ class material_graphs(object):
                 fig_path = "%s/File%d__cir%d_rep%d_DefualtGenome.%s" % (self.save_dir, self.dir_loop, cir, rep, self.format)
             fig.savefig(fig_path, dpi=self.dpi)
             plt.close(fig)
+
 
     #
 
@@ -418,7 +435,6 @@ class material_graphs(object):
         entropy = 0
         for l in eigenvalues:
             entropy = entropy - (l*np.log(l))
-
 
         # # set up figure
         fig, ax = plt.subplots(nrows=1, ncols=int(len(op_list)+1),  sharey='row')
@@ -499,6 +515,7 @@ class material_graphs(object):
         cbar2.ax.tick_params(labelsize=8)  # cbar ticks size
 
 
+
         # # show & save plots
         if self.Save_NotShow == 1:
             if self.MetaData['SaveDir'] == self.save_dir:
@@ -508,6 +525,7 @@ class material_graphs(object):
             fig.savefig(fig_path, dpi=self.dpi)
             plt.close(fig)
 
+        del imY, cbar
     #
 
     #
@@ -542,8 +560,8 @@ class material_graphs(object):
             fig, ax = plt.subplots(rows, cols,  #  figsize=(6,5)
                                    sharex='col',
                                    sharey='row')
-            #fig.subplots_adjust(hspace=0.2, wspace=0.05)
-            fig.subplots_adjust(left=0.125, bottom=0.125, right=0.85, top=0.85, wspace=0.05, hspace=0.2)
+            fig.subplots_adjust(hspace=0.1, wspace=0.1)
+            #fig.subplots_adjust(left=0.125, bottom=0.125, right=0.85, top=0.85, wspace=0.05, hspace=0.2)
         else:
             print("")
             print("ERROR (MG): MG_VaryConfig() can only compute up to 2 inputs")
@@ -600,7 +618,7 @@ class material_graphs(object):
                     #plt.setp(ax[row, col].get_yticklabels(), visible=False)
                     #ax[row, col].tick_params(axis='both', which='both', length=0)
 
-                    if row == 4:
+                    if row == rows-1:
                         # ax[row, col].text( (x1_VC.max()-abs(x1_VC.min()))/2.1, (x2_VC.max() + (x2_VC.max()-abs(x2_VC.min()))/6 ) , str(Vconfig_2[col]), size=12)
                         #ax[row, col].set_title( str(Vconfig_2[col])+'V', size=12)
                         #ax[row, col].set_xlabel(str(Vconfig_1[col])+'V', fontsize=11)
@@ -611,7 +629,7 @@ class material_graphs(object):
                             ax[row, col].text( (x1_VC.max()-abs(x1_VC.min()))-3.5 , x1_VC.max()+1.5 ,'$\\bf{%s %s}$' %( str(Vconfig_1[col]), 'V'), size=9)
                         else:
                             ax[row, col].text( (x1_VC.max()-abs(x1_VC.min()))-1.5 , x1_VC.max()+1.5 ,'$\\bf{%s %s}$' %( str(Vconfig_1[col]), 'V'), size=9)
-                    if col == 4:
+                    if col == cols-1:
                         ax[row, col].text( x2_VC.max()+1.25 , (x2_VC.max()-abs(x2_VC.min()))-1.5 , '$\\bf{%s %s}$' % (str(Vconfig_2[row]), 'V'), size=9)
 
                     #ax[row, col].text( 0.25 , 0.25 , '%s' % pop_array[k] , size=9)
@@ -636,6 +654,17 @@ class material_graphs(object):
         #fig.colorbar(im, cax=cb_ax)
         if self.title == 'on':
             fig.suptitle('Varying Vconfig on unconfigured material')
+        else:
+            plt.subplots_adjust(left=0.125, bottom=0.15, right=0.77, top=0.84)
+            #plt.subplots_adjust(left=0.09, bottom=0.125, right=0.78, top=0.85)  # [3.1,2.9]
+
+            """if self.fig_letter == 'c':
+                fig.set_size_inches([3.4,2.9])  # [3.1,2.9]
+                cax = fig.add_axes([0.8, 0.125, 0.1, 0.6])
+                cbar = fig.colorbar(im, cax=cax, orientation='horizontal')
+                cbar.set_label("Network Responce ", fontsize=10)
+                cbar.ax.tick_params(labelsize=8)  # cbar ticks size"""
+
 
         #fig.tight_layout()
 
@@ -648,8 +677,11 @@ class material_graphs(object):
         if self.NetworkDict['num_config'] == 1:
             fig.text(0.49, 0.7, '$\\bf{V_{c1}}$', fontsize=12)
         else:
-            fig.text(0.49, 0.93, '$\\bf{V_{c1}}$', fontsize=12)
-            fig.text(0.915, 0.47, '$\\bf{V_{c2}}$', fontsize=12, rotation=0)
+            fig.text(0.45, 0.93, '$\\bf{V_{c1}}$', fontsize=12)
+            fig.text(0.89, 0.47, '$\\bf{V_{c2}}$', fontsize=12, rotation=-90)
+
+        if self.fig_letter != 'na':
+            fig.text(0.02, 0.94, self.fig_letter, fontsize=14, fontweight='bold')
 
         # # show & save plots
         if self.Save_NotShow == 1:
@@ -814,9 +846,12 @@ class material_graphs(object):
         OutWeight_toggle = np.array(MG.get('VaryShuffle/OutWeight'))
         Weight_list = np.array(MG.get('VaryShuffle/Weight_list'))
 
+        rows = 2
+        cols = 2
+
         # # set up figure
-        fig, ax = plt.subplots(int(rows), int(cols), sharex='col', sharey='row', figsize=(6.25,6))
-        plt.subplots_adjust(wspace=0.2, hspace=0.2)
+        fig, ax = plt.subplots(int(rows), int(cols), sharex='col', sharey='row')  # , figsize=(6.25,6)
+        plt.subplots_adjust(wspace=0.1, hspace=0.1)
 
         # # rin loop to plot
         k = 0
@@ -857,7 +892,12 @@ class material_graphs(object):
                 fig.suptitle('Varying Permutation of inputs of an unconfigured material')
             elif OutWeight_toggle == 1:
                 fig.suptitle('Varying Permutation of inputs of an unconfigured material,\nwith random output weights')
+        else:
+            #plt.subplots_adjust(left=0.2, bottom=0.2, right=0.9, top=0.9)  # [2.8,2.7]
+            plt.subplots_adjust(left=0.225, bottom=0.225, right=0.9, top=0.9)   # [2.2,2.1]
 
+        if self.fig_letter != 'na':
+            fig.text(0.02, 0.94, self.fig_letter, fontsize=14, fontweight='bold')
 
         # # show & save plots
         if self.Save_NotShow == 1:

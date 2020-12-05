@@ -35,23 +35,37 @@ def Load_Data(type, CompiledDict):
     # # Load HDF5 files and data ##
     if CompiledDict['DE']['UseCustom_NewAttributeData'] == 0 and CompiledDict['DE']['training_data'] != 'orth':
 
+        training_data = CompiledDict['DE']['training_data']
+
         # # Do we flip the class data?
         if CompiledDict['DE']['training_data'] == 'flipped_2DDS':
-            CompiledDict['DE']['training_data'] = '2DDS'
+            training_data = '2DDS'
             flip = 1
         else:
             flip = 0
 
         # # Load data
-        df = pd.read_hdf('mod_load/data/%s_data.h5' % (CompiledDict['DE']['training_data']), data_type)
-        df_all = pd.read_hdf('mod_load/data/%s_data.h5' % (CompiledDict['DE']['training_data']), 'all')
+        df = pd.read_hdf('mod_load/data/%s_data.h5' % (training_data), data_type)
+        df_all = pd.read_hdf('mod_load/data/%s_data.h5' % (training_data), 'all')
 
         # # Normalise the data
         df_x = df.iloc[:, :-1]
+        raw_df_x = df_x.values
         df_all_x = df_all.iloc[:,:-1]
-        df_x = df_x + (df_all_x.min(axis=0)*-1)  # shift smallest val to 0
-        df_all_x = df_all_x + (df_all_x.min(axis=0)*-1)  # shift ref matrix too
-        nom_data = df_x / df_all_x.max(axis=0)  # normalise
+
+        df_all_min = df_all_x.min(axis=0)  # min in each col
+        #df_all_min = np.min(df_all_x.values)  # min in whole array
+        #print("df_all_x.min(axis=0):\n", df_all_min)
+        df_x = df_x + (df_all_min*-1)  # shift smallest val to 0
+        df_all_x = df_all_x + (df_all_min*-1)  # shift ref matrix too
+
+        df_all_max = df_all_x.max(axis=0)  # max in each col
+        #df_all_max = np.max(df_all_x.values)  # max in whole array
+        #print("df_all_max:\n", df_all_max)
+        nom_data = df_x / df_all_max  # normalise
+
+        #print("nom min:\n", nom_data.min(axis=0))
+        #print("nom max:\n", nom_data.max(axis=0))
 
         # # scale Normalised the data to a +/-5v input
         diff = np.fabs(min-max)
