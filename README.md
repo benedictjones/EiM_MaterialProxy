@@ -4,6 +4,7 @@ The material is replaced with a SPICE based model, produced by integrating NGSpi
 This supports the paper:
 
 Title: Co-design of algorithms and nanomaterials for use as Evolvable Processors
+
 Authors: Benedict Jones, John Chouard, Bianca C.C. Branco, Eléonore G.B. Vissol-Gaudin, Christopher Pearson, Dagou A. Zeze, Michael C. Petty, Christopher Groves
 
 Note that the data used in the paper is included (~400MB) making up the bulk of the download.
@@ -23,25 +24,24 @@ For best performance:
 
 Having downloaded this repository, ensure that the correct packages and NGSpice are installed.
 Normal installation time will be around 5 minutes (depending on upload/download speed).
-Python 3.8.5 is used.
+Python 3.8.5 was used.
 
-### Step 1 - Packages
+### Step 1 - Python Packages
 To run the model/code in this repository please **install the correct modules** :
 
-Ensure you have installed these packages (a full list of my enviroments dependences is given in dependences.txt):
-    - PySpice
-    - h5py
-    - tqdm
-    - pandas
-    - tables
-    - pickle
-    - scipy
-    - sklearn
-    - numpy
-    - yaml
+Ensure you have installed these main packages (a full list of my enviroments dependences is given in dependences.txt):
+- PySpice
+- h5py
+- tqdm
+- pandas
+- tables
+- pickle
+- scipy
+- sklearn
+- numpy
+- yaml
 
-    
-    (You may need to upgrade previous versions, e.g. ```run pip install --upgrade --force-reinstall h5py```)
+(You may need to upgrade previous versions, e.g. ```run pip install --upgrade --force-reinstall h5py```)
     
 
 
@@ -50,17 +50,16 @@ For PySpice to work **NGSpice must also be installed**.
 (Full instructions for PySpice/NGSpice installation can be found at https://pyspice.fabrice-salvaire.fr/releases/v1.4/installation.html)  
 Note: this code has been developed using NGSpice 31 (later versions such as NGSpice 33 are not currently compatible)!
 
+#### Linux
+On linux NGSpice is installed via the command line.  
+For Ubuntu use: ```sudo apt-get install -y ngspice```
+
 #### Windows
 A version of NGSpice is included in /NGSpice/ngspice.zip, the extracted contents must be placed in the appropriate location.  
 For PySpice 1.4 (the current release) place Spice64 and Spice_dll in the PySpice module inside *PySpice\Spice\NgSpice*.  
     e.g. for conda enviroment eim_env: *C:\Users\user\anaconda3\envs\eim_env\Lib\site-packages\PySpice\Spice\NgSpice*
   
 Note: For the older version of PySpice 1.3, place Spice64 and Spice_dll in *C:\Program Files*.
-
-#### Linux
-On linux NGSpice is installed via the command line.  
-For Ubuntu use: ```sudo apt-get install -y ngspice```
-
 
 ## Demo
 
@@ -129,8 +128,6 @@ The target folder can be set to either:
 
 - A results folder (e.g. *'Results/2020_06_17/__13_59_18__con2DDS__EXP_Demo_Exp_D_RN'*)
 - An experiment folder (e.g. *'Experiment_List/con2DDS/2020_06_17__13_59_18___EXP_Demo_Exp_D_RN'*)
-
-An example is given in anly_run_demo.py.
 
 ### Reading Paper Results
 To reproduce the plots used in the paper, execute anly_run_paper.py (for the graphs) and anly_run_paper_mg.py (for the responce surface plots).
