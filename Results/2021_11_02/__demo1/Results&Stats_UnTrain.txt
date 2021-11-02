@@ -1,0 +1,2 @@
+Param, Mean UnTrained Fit, Std UnTrained Train Fit, Best UnTrained Fit 
+ n/a - Not an Exp, 0.004, 0.000, 0.004 

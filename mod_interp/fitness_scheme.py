@@ -1,16 +1,21 @@
 # Import
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from sklearn.decomposition import PCA
 from sklearn import preprocessing
-
-from mod_load.LoadData import Load_Data
 
 import sklearn.cluster as cl
 import sklearn.metrics as met
 import itertools
 import scipy.spatial.distance as ds
+
+from math import log2
+
+# import warnings filter
+from warnings import simplefilter
+
 
 ''' # NOTES
 Fitness evaluation schemes can be:
@@ -28,8 +33,10 @@ FitScheme = 'error'     - Defualt, finds mean error from all instances
 '''
 
 
-
 def centr_dist(centers):
+    """
+    Find the distance between every combination of centres and return the mean
+    """
     iterable = np.arange(len(centers))
     center_pairs = list(itertools.combinations(iterable, 2))
 
@@ -43,11 +50,72 @@ def centr_dist(centers):
     return score
 
 
+def dist_per_axis(centers):
+    """
+    Find the distance between the different dimension between every combination
+    of centres.
+    This is normalised by dividing by the euclidean/hypotinues, then inversed
+    to punish small values of distance on any dimension/axis.
+    These are combined as a sqrt or the sum of squares
+    """
+    iterable = np.arange(len(centers))
+    center_pairs = list(itertools.combinations(iterable, 2))
+
+    dists = []
+    for pair in center_pairs:
+
+        # exract info from pairing
+        d = ds.euclidean(centers[pair[0]], centers[pair[1]])
+        axis_diff = np.abs(centers[pair[0]]-centers[pair[1]])
+
+        # using pythag: 1 = (a1/c)^2 + (a2/c)^2 + ... + (aN/c)^2
+        nom_axis_diff = (axis_diff/d)**2  # normalise each side by the hypotenuse
+        axis_diff_invs = nom_axis_diff**-1  # find the inverse (punish small distances)
+
+        #dists.append(np.mean(axis_diff_invs))
+        dists.append(np.sum(axis_diff_invs**2)**0.5)
+
+    dists = np.asarray(dists)
+    #print(dists)
+    #score = np.sum(dists**2)**0.5  # combine scores
+    score = np.mean(dists)  # combine scores
+    return score
 
 
+def equal_dist_per_axis(centers):
+    """
+    Find the distance between the different dimension between every combination
+    of centres.
+    This is normalised by dividing by the euclidean/hypotinues.
+    A fitness score is then generated which equates to how evenly distributes
+    the distances are "spread out" between the different dimensions/axis.
+    These are combined as a sqrt or the sum of squares
+    """
+    iterable = np.arange(len(centers))
+    center_pairs = list(itertools.combinations(iterable, 2))
 
+    scores = []
+    for pair in center_pairs:
 
+        # exract info from pairing
+        d = ds.euclidean(centers[pair[0]], centers[pair[1]])
+        axis_diff = np.abs(centers[pair[0]]-centers[pair[1]])
 
+        # using pythag: 1 = (a1/c)^2 + (a2/c)^2 + ... + (aN/c)^2
+        nom_axis_diff = (axis_diff/d)**2  # normalise each side by the hypotenuse
+        per = (1/len(nom_axis_diff))  # we want each side to be of an equal size, find the nomalisation factor
+        closeness_ration = nom_axis_diff/per  # normalise by the desired factor (for equal weightings)
+        cr_centred = abs(closeness_ration-1)  # centre around zero
+        fit = np.sum(cr_centred)  # sum the values
+        fit_nom = fit*per  # use the scale to nomalis eback to a maximum of 1
+
+        scores.append(fit_nom)
+
+    scores = np.asarray(scores)
+    print(scores)
+    score = np.sum(scores**2)**0.5  # combine scores
+
+    return score
 
 
 
@@ -60,31 +128,48 @@ def centr_dist(centers):
 Fitness schemes:
 """
 
-def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict, handle=0, the_data=0):
+def GetFitness(real_class, predicted_class, responceY, Vout, prm, threshold='na', handle=0):
 
-    ParamDict = CompiledDict['DE']
-    NetworkDict = CompiledDict['network']
+    ParamDict = prm['DE']
+    NetworkDict = prm['network']
     FitScheme = ParamDict['FitScheme']
     # max_OutResponce =  # calc
+    class_values = np.unique(real_class)
+    #
+    class_weights = prm['DE']['ClassWeights']
 
-    if ParamDict['FitScheme'] == 'orth':
-        er = []
-        for row_idx in range(len(real_class[:, 0])):
-            for col_idx in range(len(real_class[0, :])):
-                er.append(abs(real_class[row_idx, col_idx] - Vout[row_idx, col_idx])/10)
-        fitness = np.mean(er)
-        return  fitness, fitness, er
+    weight_array = np.ones(len(real_class))
+    for cdx, cls in enumerate(class_values):
+        idxs = np.where(real_class == cls)
+        weight_array[idxs] = weight_array[idxs]*class_weights[cdx]
 
-    if len(predicted_class) != len(real_class):
-       raise ValueError('(TheModel.py): produced class list not same length as real class checking data')
-    error = np.asarray(np.abs(predicted_class - real_class))  # calc error matrix, mke it posotive
 
-    # # set errored values to 1, if they are not correct (i.e zero)
-    for loc, el in enumerate(error):
-        if int(el) != 0:
-            error[loc] = 1
-    err_fit = np.mean(error)
+    if len(predicted_class) != len(real_class) and str(real_class) != 'na':
+        raise ValueError('(TheModel.py): produced class list not same length as real class checking data')
 
+    elif str(real_class) != 'na':
+
+        error = np.asarray(np.abs(predicted_class - real_class))  # calc error matrix, mke it posotive
+
+        # # set errored values to 1, if they are not correct (i.e zero)
+        for loc, el in enumerate(error):
+            if int(el) != 0:
+                error[loc] = 1
+
+        err_fit = np.mean(error)
+
+    else:
+        error = np.ones(len(Vout[:,0]))*-1
+        err_fit = -1
+
+    # # ignore all future warnings
+    # these are generated by sklearn KMeans n_jobs argument
+    # need to set n_jobs=1 to avoid strange error where KMeans hangs
+    # this seems to happen if a second RunAE is run (which is using multiprocessing)
+    # I think this is a clash between python mp (forking) and skleans inbuild mp
+    # https://github.com/scikit-learn/scikit-learn/issues/636
+    # simplefilter(action='ignore', category=FutureWarning)
+    # os.environ["OMP_NUM_THREADS"] = "1"
 
     if FitScheme == 'error':
         """ Fitness is the raw error """
@@ -110,7 +195,28 @@ def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict, handl
 
     elif FitScheme == 'KmeanDist':
         """
-        Apply Clustering to a raw responce value, then calculate the distance
+        Apply KMeans Clustering to a raw responce value, then calculate the distance
+        between clusters.
+        Use this as a fitness metric.
+        """
+
+        # Re shape the 1d array into a 2d numpy array
+        if len(responceY.shape) == 1:
+            responceY = np.reshape(responceY, (responceY.shape[0], 1))
+        #model = cl.KMeans(ParamDict['num_classes'], n_jobs=1)
+        model = cl.KMeans(ParamDict['num_classes'])
+
+        model.fit(responceY)
+
+        yhat = model.predict(responceY) # assign a cluster to each example
+
+        mean_dist = centr_dist(model.cluster_centers_)
+        fitness = 1/mean_dist  # we want a big distance!
+        #fitness = 0.5
+
+    elif FitScheme == 'KmeanEqualSpace':
+        """
+        Apply KMeans Clustering to a raw responce value, then calculate the distance
         between clusters.
         Use this as a fitness metric.
         """
@@ -119,12 +225,81 @@ def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict, handl
         if len(responceY.shape) == 1:
             responceY = np.reshape(responceY, (responceY.shape[0], 1))
 
+        # model = cl.KMeans(ParamDict['num_classes'], n_jobs=1)
         model = cl.KMeans(ParamDict['num_classes'])
         model.fit(responceY)
         yhat = model.predict(responceY) # assign a cluster to each example
 
-        mean_dist = centr_dist(model.cluster_centers_)
-        fitness = 1/mean_dist  # we want a big distance!
+        fitness = equal_dist_per_axis(model.cluster_centers_)
+
+    elif FitScheme == 'KmeanSpace':
+        """
+        Apply KMeans Clustering to a raw responce value, then calculate the distance
+        between clusters.
+        Use this as a fitness metric.
+        """
+
+        # Re shape the 1d array into a 2d numpy array
+        if len(responceY.shape) == 1:
+            responceY = np.reshape(responceY, (responceY.shape[0], 1))
+
+        # model = cl.KMeans(ParamDict['num_classes'], n_jobs=1)
+        model = cl.KMeans(ParamDict['num_classes'])
+        model.fit(responceY)
+        yhat = model.predict(responceY) # assign a cluster to each example
+
+        fitness = dist_per_axis(model.cluster_centers_)
+
+    elif FitScheme == 'Vsep':
+        """
+        Seperateong the "distance" between the average class voltages
+        """
+        #real_class, predicted_class, responceY, Vout
+
+    elif FitScheme == 'Ysep':
+        """
+        Seperateong the "distance" between the average class responces
+        """
+        #real_class, predicted_class, responceY
+
+        if len(class_values) > 2:
+            raise ValueError("Ysep can only be used for 2 classes (binary problems)")
+        class_values.sort()
+        classes_data = []
+        classes_mean = []
+        classes_std = []
+
+        for cla in class_values:
+            class_rY = []
+            for instance, yclass in enumerate(real_class):
+                if yclass == cla:
+                    class_rY.append(responceY[instance])
+            class_group = np.asarray(class_rY)
+
+            mean_class_rY = np.mean(class_group)
+            std_class_rY = np.std(class_group)
+
+            classes_data.append(class_group)
+            classes_mean.append(mean_class_rY)
+            classes_std.append(std_class_rY)
+
+        diff = abs(classes_mean[0]-classes_mean[1])
+        std = (classes_std[0]**2+classes_std[1]**2)**0.5
+
+        """
+        lower_edge = classes_mean[np.argmin(classes_mean)] + classes_std[np.argmin(classes_mean)]
+        upper_edge = classes_mean[np.argmax(classes_mean)] + classes_std[np.argmax(classes_mean)]
+        print(lower_edge, upper_edge)
+        diff = abs(lower_edge-upper_edge)
+        fitness = 1/(diff+0.000001)
+        """
+
+        print(1/(diff+0.000001), 1/(std+0.000001))
+
+        #fitness = 1/(diff+0.000001) + 1/(std+0.000001)
+        fitness = 1/(diff+0.000001) + 1/(classes_std[0]+0.000001)+ 1/(classes_std[1]+0.000001)
+
+
 
 
 
@@ -138,8 +313,6 @@ def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict, handl
         i.e Scores the InterpScheme clustering effort.
         """
 
-        data_X, nn = Load_Data(the_data, CompiledDict)
-
         if len(responceY.shape) == 1:
             responceY = np.reshape(responceY, (responceY.shape[0], 1))
         model = handle
@@ -148,19 +321,10 @@ def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict, handl
 
         hom, com, v_mes = met.homogeneity_completeness_v_measure(real_class, yhat)
 
-        model = cl.KMeans(ParamDict['num_classes'])
-        model.fit(data_X)
-        yhat_og = model.predict(data_X) # assign a cluster to each example
-        og_hom, og_com, og_v_mes = met.homogeneity_completeness_v_measure(real_class, yhat_og)
-
-
         per = (hom+com)/2
-
-        og_per = (og_hom+og_com)/2
-        og_fit = 1-og_per
         fit = 1 - per
 
-        fitness = fit/og_fit
+        fitness = fit
 
         #print("homo:", hom, " complt:", com, " perc:", per, " fit:", fitness)
 
@@ -180,56 +344,82 @@ def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict, handl
         from it.
         """
 
-        #print(responceY)
-
-        if np.size(responceY) != np.size(error):
-            raise ValueError(" The Error and Responce Y arrays do not match!")
-
-        # filter out errors
-        correct = np.asarray((error-1)*responceY)
-
-        # error test
-        j = 0
-        for val in error:
-            tt = (val-1)*responceY[j]
-            if correct[j] != tt:
-                raise ValueError("Wrong!")
-            j += 1
-
-        #correct = correct[~np.all(correct == 0)]*-1
-        correct = correct[np.argwhere(correct)]  # select non-zero elements
-        if len(correct) == 0:
-            correct = np.asarray([0])
-
-        # filter out non-error values
-        incorrect = (error)*responceY
-        #incorrect = incorrect[~np.all(incorrect == 0)]
-        incorrect = incorrect[np.argwhere(incorrect)]  # select non-zero elements
-        if len(incorrect) == 0:
-            incorrect = np.asarray([0])
-
-        good_reading = abs(correct)
-        bad_reading = abs(incorrect)*-1
-
-        good_sig_array = 1/(1+np.exp(-good_reading))
-        bad_sig_array = 1/(1+np.exp(-bad_reading))
-
-        CrossEntropy = 0
-        for el in good_sig_array.flatten():
-            CrossEntropy = CrossEntropy - np.log(el)
-            #CrossEntropy = CrossEntropy + el
-
-        for el in bad_sig_array.flatten():
-            CrossEntropy = CrossEntropy - np.log(el)
-            #CrossEntropy = CrossEntropy + el
-
-        fitness = CrossEntropy
+        if len(np.shape(responceY)) != 1:
+            raise ValueError("Can only have one output node for BinCrossEntropy")
 
 
+        # # Centre the responce on the threshold!
+        Centred_rY = responceY - threshold
+        num_instances = len(Centred_rY)
 
-        """print(pos, "len correct", len(correct))
-        print(pos, "np.mean(abs(correct))", np.mean(abs(correct)))
-        exit()#"""
+        # # Sigmoid factor to scale curve
+        #f = 1  # 80% @ ~1.4, 98% @ ~3.9
+        #f = 10  # 80% @ ~0.2, 98% @ ~0.4
+        #f = 20  # 80% @ ~0.07, 98% @ ~0.195
+        f = prm['DE']['SigmoidCorner']
+
+        # # Group Correct Responces
+        correct = (error-1)*Centred_rY  # if error, then set to zero
+        correct = correct[np.where(correct != 0)]  # filter out zeros
+        G_CrossEntropy = 0
+        if len(correct) != 0:
+            good_sig_array = 1/(1+np.exp(-abs(correct)*-1*f)) # Find array of sig of each value
+            #print(">> OG good sig: ", np.mean(good_sig_array))
+            good_sig_array = 1-good_sig_array
+            G_CrossEntropy = -np.log(good_sig_array+1e-100)
+            G_CrossEntropy = G_CrossEntropy*weight_array[np.where(correct != 0)]
+        G_CrossEntropy = np.sum(G_CrossEntropy)
+
+
+        # # Group InCorrect Responces
+        incorrect = (error)*Centred_rY  # if NO error, then set to zero
+        incorrect = incorrect[np.where(incorrect != 0)] # filter out zeros
+        B_CrossEntropy = 0
+        if len(incorrect) != 0:
+            bad_sig_array = 1/(1+np.exp(-abs(incorrect)*f)) # Find array of sig of each value
+            #print(">> OG bad sig: ", np.mean(bad_sig_array))
+            bad_sig_array = 1 - bad_sig_array
+            B_CrossEntropy = -np.log(bad_sig_array+1e-100)
+            B_CrossEntropy = B_CrossEntropy*weight_array[np.where(incorrect != 0)]
+        B_CrossEntropy = np.sum(B_CrossEntropy)
+
+        #print(">>  ", np.mean(good_sig_array), np.mean(bad_sig_array))
+
+        fitness = (G_CrossEntropy + B_CrossEntropy)/num_instances
+        #print(">", G_CrossEntropy+B_CrossEntropy, ", mean:", fitness, num_instances)
+        #exit()
+
+    elif FitScheme == 'BCE':
+        """ Using the sigmoid function emphasises the effect of data points
+        close to the boundary, and reduces the effect of points far away
+        from it.
+
+        The output weights adjust the Responce (Y) value to make sure the
+        sigmoid is being exploited to minimise the entropy.
+        """
+
+        if len(np.shape(responceY)) != 1:
+            raise ValueError("Can only have one output node for BinCrossEntropy")
+
+
+        # # Centre the responce on the threshold!
+        Centred_rY = responceY - threshold
+        num_instances = len(Centred_rY)
+
+        sig_array = 1/(1+np.exp(-Centred_rY)) # Find array of sig of each value
+
+        H_cl1 = -np.log(1 - sig_array[np.where(real_class == 1)])
+        H_cl2 = -np.log(sig_array[np.where(real_class == 2)])
+
+        # Add Weighting
+        H_cl1 = H_cl1*weight_array[np.where(real_class == 1)]
+        H_cl2 = H_cl2*weight_array[np.where(real_class == 2)]
+
+        H_total = np.sum(H_cl1) + np.sum(H_cl2)
+
+        fitness = H_total/num_instances
+        #print(">New BCE>", H_total, ", mean:", fitness, num_instances)
+        #exit()
 
     elif FitScheme == 'dist':
         """ Using the sigmoid function emphasises the effect of data points
@@ -237,156 +427,109 @@ def GetFitness(real_class, predicted_class, responceY, Vout, CompiledDict, handl
         from it.
         """
 
-        #responceY = responceY  # scale it?
+        # # Centre the responce on the threshold!
+        Centred_rY = responceY - threshold
+        num_instances = len(Centred_rY)
 
-        correct = (error-1)*responceY
-        correct = correct[~np.all(correct == 0, axis=1)]*-1
+        # # Sigmoid factor to scale curve
+        #f = 1  # 80% @ ~1.4, 98% @ ~3.9
+        #f = 10  # 80% @ ~0.2, 98% @ ~0.4
+        #f = 20  # 80% @ ~0.07, 98% @ ~0.195
+        f = prm['DE']['SigmoidCorner']
+
+        # # Group Correct Responces
+        correct = (error-1)*Centred_rY  # if error, then set to zero
+        correct = correct[np.where(correct != 0)]  # filter out zeros
         if len(correct) == 0:
             correct = 0
+            good_sig_array = 0
+        else:
+            good_sig_array = 1/(1+np.exp(-abs(correct)*-1*f)) # Find array of sig of each value
 
-        incorrect = (error)*responceY
-        incorrect = incorrect[~np.all(incorrect == 0, axis=1)]
+        # # Group InCorrect Responces
+        incorrect = (error)*Centred_rY  # if NO error, then set to zero
+        incorrect = incorrect[np.where(incorrect != 0)] # filter out zeros
         if len(incorrect) == 0:
             incorrect = 0
+            bad_sig_array = 0
+        else:
+            bad_sig_array = 1/(1+np.exp(-abs(incorrect)*f)) # Find array of sig of each value
 
+        #print(Centred_rY)
+        #print(correct)
+        #print(incorrect)
+
+        # # Find mean of each abs value
         good_reading = np.mean(abs(correct))
         bad_reading = np.mean(abs(incorrect))
-
-        good_sig = 1/(1+np.exp(-good_reading))
-        bad_sig = 1/(1+np.exp(-bad_reading))
+        #print("good_reading", good_reading, " ,bad_reading", bad_reading)
 
 
-        #fitness = bad_reading + 1/good_reading  # we want smaller fitnesses to be better
+
+        # # Find sigmoid of the mean raw value
+        good_sig = 1/(1+np.exp(-good_reading*f))
+        bad_sig = 1/(1+np.exp(-bad_reading*f))
+        #print("good_sig", good_sig, ", bad_sig", bad_sig)
+
+
+
+        #print("good_sig_array", np.mean(good_sig_array), ", bad_sig_array", np.mean(bad_sig_array))
+        #print("good_sig_array2", np.sum(good_sig_array)/num_instances, ", bad_sig_array2", np.sum(bad_sig_array)/num_instances)
+
+        #fit1 = bad_reading + 1/good_reading  # we want smaller fitnesses to be better
+        #fit2 = bad_sig + 1/good_sig
+        #fit3 = np.mean(good_sig_array)+np.mean(bad_sig_array)
+        fit4 = (np.sum(good_sig_array) + np.sum(bad_sig_array))/num_instances
+        # print("> Raw Fit:", fit1, ", Sig Fit:", fit2, ", Sig2 Fit:", fit3, ", Sig3 Fit:", fit4)
+
         #fitness = fitness/max_OutResponce
-        fitness = bad_sig # + 1/good_sig
+        fitness = fit4
 
-        """print(pos, "len correct", len(correct))
-        print(pos, "np.mean(abs(correct))", np.mean(abs(correct)))
-        exit()#"""
-
+        #exit()
 
     elif FitScheme == 'mse':
         """ This emphasises the effect of data points further alway
         from the boundary.
         """
 
-        #responceY = responceY  # scale it?
+        # # Centre the responce on the threshold!
+        Centred_rY = responceY - threshold
+        num_instances = len(Centred_rY)
 
-        correct = (error-1)*responceY
-        correct = correct[~np.all(correct == 0, axis=1)]*-1
+        # # Sigmoid factor to scale curve
+        #f = 1  # 80% @ ~1.4, 98% @ ~3.9
+        #f = 10  # 80% @ ~0.2, 98% @ ~0.4
+        #f = 20  # 80% @ ~0.07, 98% @ ~0.195
+        f = prm['DE']['SigmoidCorner']
+
+        # # Group Correct Responces
+        correct = (error-1)*Centred_rY  # if error, then set to zero
+        correct = correct[np.where(correct != 0)]  # filter out zeros
         if len(correct) == 0:
             correct = 0
 
-        incorrect = (error)*responceY
-        incorrect = incorrect[~np.all(incorrect == 0, axis=1)]
+        # # Group InCorrect Responces
+        incorrect = (error)*Centred_rY  # if NO error, then set to zero
+        incorrect = incorrect[np.where(incorrect != 0)] # filter out zeros
         if len(incorrect) == 0:
             incorrect = 0
 
+        # Square
         correct_sq = np.asarray(correct)**2
         incorrect_sq = np.asarray(incorrect)**2
 
+        # Find Mean
         good_reading = np.mean(correct_sq)
         bad_reading = np.mean(incorrect_sq)
 
-        #good_sig = 1/(1+np.exp(-good_reading))
-        #bad_sig = 1/(1+np.exp(-bad_reading))
-
-        # # Don't include correct points?
-        # # Just "depth" of bad points?
-        fitness = bad_reading # + 1/good_reading
-
-
-    elif FitScheme == 'mre':
-        """ This supresses the effect of data points further alway
-        from the boundary.
-        """
-
-        #responceY = responceY  # scale it?
-
-        correct = (error-1)*responceY
-        correct = correct[~np.all(correct == 0, axis=1)]*-1
-        if len(correct) == 0:
-            correct = 0
-        else:
-            correct = np.asarray(abs(correct))**0.5
-
-        incorrect = (error)*responceY
-        incorrect = incorrect[~np.all(incorrect == 0, axis=1)]
-        if len(incorrect) == 0:
-            incorrect = 0
-        else:
-            incorrect = np.asarray(abs(incorrect))**0.5
-
-
-
-        good_reading = np.mean(correct)
-        bad_reading = np.mean(incorrect)
-
-        #good_sig = 1/(1+np.exp(-good_reading))
-        #bad_sig = 1/(1+np.exp(-bad_reading))
-
-
-        fitness = bad_reading # + 1/good_reading
-        #fitness = fitness/max_OutResponce
-        #fitness = bad_sig + 1/good_sig
-
-
-    elif FitScheme == 'BinCrossEntropy2':
-
-
-        responceY = (responceY/max_OutResponce)*5  # scale
-        real_class = np.asarray(real_class)
-        #print("##", pos, " len(real_class)", len(real_class))
-        #print("##", pos, " len(responceY)", len(responceY))
-
-        # find cross entropy for class 2's
-        Y_class2 = (real_class-1)*responceY
-        Y_class2 = Y_class2[~np.all(Y_class2 == 0, axis=1)]
-        #print("##", pos, " after len(Y_class2)", len(Y_class2))
-
-        CrossEntropy = []
-        #Y_class2 = Y_class2*-1  # needed to make sigmoid correct
-        loc = 0
-        for el in Y_class2:
-            x = el[0]  # /max_OutResponce
-            sig = 1/(1+np.exp(-x))  # not doing logistic regression, as we are already about zero, but trying to shift zero
-            CrossEntropy.append(-np.log(sig))
-            """print(pos, "val:", x)
-            print(pos, "sig:", sig)
-            print(pos, "cross entropy=", - np.log(sig))
-            exit()#"""
-            loc = loc + 1
-
-
-        # find cross entropy for class 1's
-        Y_class1 = (real_class-2)*responceY
-        Y_class1 = Y_class1[~np.all(Y_class1 == 0, axis=1)]*-1  # multiply by -1 to counter the shift filtering above
-        #print("##", pos, " after len(Y_class1)", len(Y_class1))
-
-        Y_class1 = Y_class1*-1
-        for el in Y_class1:
-            x = el[0]  # /max_OutResponce
-            sig = 1/(1+np.exp(-x))  # not doing logistic regression, as we are already about zero, but trying to shift zero
-            CrossEntropy.append(-np.log(1-sig))
-            """print(pos, "val:", x)
-            print(pos, "sig:", sig)
-            print(pos, "cross entropy=", - np.log(1-sig))
-            exit()#"""
-
-        # fitness is mean cross entropy
-        fitness = np.mean(CrossEntropy)
-        """print(pos, "len CEnt", len(CrossEntropy))
-        print(pos, "fit", fitness)
-        print(pos, "CrossEntropy array:\n", CrossEntropy)
-        exit()#"""
-
-        exit()
+        fitness = bad_reading + 1/good_reading
 
     elif FitScheme == 'none':
         fitness = 0
 
 
     #print("\nerror\n", error)
+    #print("FitScheme", FitScheme)
     #print("Fitness:", fitness)
     #print("responceY\n", responceY)
     #exit()

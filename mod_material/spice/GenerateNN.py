@@ -96,7 +96,7 @@ def calc_num_conn(num_node):
     return num_conn
 
 
-def generate_neuromorphic_netork(CompiledDict, genome, Input_V, pulse_Tp, cir=0):
+def generate_neuromorphic_netork(CompiledDict, genome, Input_V, pulse_Tp, syst=0):
 
     # # # # # # # # # # # #
     # Assign setting to self from setting dict file
@@ -414,7 +414,7 @@ def generate_neuromorphic_netork(CompiledDict, genome, Input_V, pulse_Tp, cir=0)
     # print("the circuit: \n", circuit)
 
     # # make file
-    if cir >= 0:
+    if syst >= 0:
         dir_path = "%s/MD_CircuitTop" % (CompiledDict['SaveDir'])
         if os.path.exists(dir_path) is not True:
             os.makedirs(dir_path)
@@ -423,7 +423,7 @@ def generate_neuromorphic_netork(CompiledDict, genome, Input_V, pulse_Tp, cir=0)
         circuit_top = circuit
         circuit_top = '%s' % circuit_top
 
-        Net_top_path = "%s/Network_Topology_%s_Cir_%s.txt" % (dir_path, str(CompiledDict['param_file']), cir)
+        Net_top_path = "%s/Network_Topology_%s_Cir_%s.txt" % (dir_path, str(CompiledDict['param_file']), syst)
         print("First save:", Net_top_path)
         file1 = open(Net_top_path, "w")
         file1.write(circuit_top)
@@ -492,7 +492,7 @@ def generate_neuromorphic_netork(CompiledDict, genome, Input_V, pulse_Tp, cir=0)
 
 
         # now try and write it
-        circuit_top_path = "%s/MaterialDescription_%s_Cir_%s.txt" % (dir_path, str(CompiledDict['param_file']), cir)
+        circuit_top_path = "%s/MaterialDescription_%s_Cir_%s.txt" % (dir_path, str(CompiledDict['param_file']), syst)
         res_diode_list = ''
         for list_bit in text_list:
             res_diode_list = '%s%s \n' % (res_diode_list, list_bit)

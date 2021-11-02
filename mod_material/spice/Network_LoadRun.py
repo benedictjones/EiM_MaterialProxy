@@ -5,7 +5,6 @@ import sys
 import os
 import PySpice
 
-#from PySpice.Spice.NgSpice.Shared import NgSpiceShared
 
 from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import *
@@ -13,18 +12,18 @@ from PySpice.Unit import *
 from mod_material.spice.SPICE_setup import *
 from mod_material.spice.SPICE_interpret import *
 
+from PySpice.Spice.NgSpice.Shared import NgSpiceShared
 
 
 
-
-# change sim program location depending on system
+"""# change sim program location depending on system
 if sys.platform == "linux" or sys.platform == "linux2":
     #PySpice.Spice.Simulation.CircuitSimulator.DEFAULT_SIMULATOR = 'ngspice-subprocess'  # needed for linux
     PySpice.Spice.Simulation.CircuitSimulator.DEFAULT_SIMULATOR = 'ngspice-subprocess'  # needed for linux
     pass
 elif sys.platform == "win32":
     #NgSpiceShared._ngspice_id  = 1
-    pass
+    pass"""
 
 # # # # # # # # # # # #
 # Produce a print disable function
@@ -44,8 +43,8 @@ logger = Logging.setup_logging()
 enablePrint()
 
 # current bug fix
-import locale
-locale.setlocale(locale.LC_NUMERIC, "C")
+#import locale
+#locale.setlocale(locale.LC_NUMERIC, "C")
 
 
 
@@ -60,17 +59,42 @@ a .txt file)
 # #############################################################################
 
 
-def LoadRun_model(Input_V, Dir, CompiledDict, pulse_Tp, cir):
+def LoadRun_model(Input_V, Dir, CompiledDict, pulse_Tp, syst, l='na', m='na'):
+    """
+    This loads in a previously produced material, then adjusts its input
+    voltages and runs the simulation to produce outputs.
+
+    The material is loaded acording to:
+        1) The name of the param_file associated with the prcoessor object
+        2) The system loop
+        3) The Layer & material-in-layer index
+    """
 
 
     NetworkDict = CompiledDict['network']
     SpiceDict = CompiledDict['spice']
 
-    # Create File path to load network topology
-    path_fi = "%s/MD_CircuitTop/Network_Topology_%s_Cir_%d.txt" % (Dir, str(CompiledDict['param_file']), cir)
+    # make an instance of ngspice shared library
+    #ngspice = NgSpiceShared.new_instance()  # ngspice_id=0
+    #ngspice = NgSpiceShared.new_instance(ngspice_id=9)  # ngspice_id=0
+
+    # # Add layer refference
+    if l == 'na':
+        lref = ''
+    else:
+        lref = '_l%d' % (l)
+
+    # # Add the material (in a select layer) refference
+    if m == 'na':
+        mref = ''
+    else:
+        mref = '_m%d' % (m)
+
+    # # Create File path to load network topology
+    path_fi = "%s/MD_CircuitTop/Network_Topology_%s_Syst%d%s%s.txt" % (Dir, str(CompiledDict['param_file']), syst, lref, mref)
     #print(path_fi)
 
-    # Create circuit
+    # # Create circuit
     name = 'Material Network ReLoad'
     circuit = Circuit(name)
 
@@ -81,7 +105,7 @@ def LoadRun_model(Input_V, Dir, CompiledDict, pulse_Tp, cir):
         # NetTop = reader.read()
         NetTop = reader.readlines()  # reads lines, but includes "\n"
 
-        # Break up and re-write Network in raw spice
+        # # Break up and re-write Network in raw spice
         lines = [a_line.rstrip('\n') for a_line in NetTop]
         try:
             while 1:
@@ -89,13 +113,31 @@ def LoadRun_model(Input_V, Dir, CompiledDict, pulse_Tp, cir):
         except:
             pass
 
-        # Write lines to spice, and replace voltage if it is a Vnode
+        #
+
+        # # Write lines to spice, and replace voltage if it is a Vnode
         for line in lines:
-            if line[0] == 'V' or line[:2] == 'Bs' or '.title' in line or line[0] == '+':
+            if line[0] == 'V' or line[:2] == 'Bs' or '.title' in line or line[0] == '+' or 'contact' in line or 'shunt' in line:
                 pass  # we will redefine these things
             else:
                 #print(line)
                 circuit.raw_spice += line + os.linesep  # these are the material properties
+
+        #
+
+        # # Peripheral Resistances
+        # Generate Input contacts
+        for i in range(NetworkDict['num_input']+NetworkDict['num_config']):
+            circuit.R('in%s_contact' % (i+1), 'in%s_conn' % (i+1), 'n%d' % (i+1), SpiceDict['in_contact_R']@u_Ohm)
+
+        # Generate Output contacts & Shunt
+        for i in range(NetworkDict['num_output']):
+            node = NetworkDict['num_input']+NetworkDict['num_config']+NetworkDict['num_output'] - i
+            circuit.R('op%s_contact' % (i+1), 'op%s_conn' % (i+1), 'n%d' % (node), SpiceDict['op_contact_R']@u_Ohm)
+            if SpiceDict['op_shunt_R'] != 'none':
+                circuit.R("op%d_shunt" % (i+1), 'n%d' % (node), circuit.gnd, SpiceDict['op_shunt_R']@u_kOhm)
+
+        #
 
         if SpiceDict['sim_type'] == 'sim_dc':
             sim_mode = 'dc'
@@ -112,10 +154,15 @@ def LoadRun_model(Input_V, Dir, CompiledDict, pulse_Tp, cir):
         # #################################################
         # #  Simulate
         # #################################################
-        # circuit.raw_spice = '.OPTIONS itl1=1000'
-        # circuit.raw_spice = '.OPTIONS itl6=100'
+        # circuit.raw_spice += '.OPTIONS itl1=1000' + os.linesep
+        # circuit.raw_spice += '.OPTIONS itl6=100' + os.linesep
+        circuit.raw_spice += '.OPTIONS itl1=10000' + os.linesep
+        circuit.raw_spice += '.OPTIONS itl6=500' + os.linesep
 
         simulator = circuit.simulator(temperature=25, nominal_temperature=25)
+        """
+        Above not working with Ngspice 34 on windows with pyspice 1.5?
+        """
         #print("Load_run:\n", simulator)
         #exit()
 
@@ -133,7 +180,14 @@ def LoadRun_model(Input_V, Dir, CompiledDict, pulse_Tp, cir):
 
         Vout, sample_time = format_Vout(analysis, pulse_Tp, CompiledDict, num_samples)
 
+    # # clean up
+
     del circuit, simulator, analysis
+
+    # # destroy NGSpice stored circuits/memory
+    #ngspice.destroy()  # does not work
+    #circuit.simulator(spice_command='destroy all') # destroy NGSpice stored circuits/memory
+
 
     # Finish and return voltages
     return Vout

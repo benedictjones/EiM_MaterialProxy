@@ -2,78 +2,118 @@
 SaveDir : bin/
 ReUse_dir : na
 algorithm : EiM
-num_processors : 2
+num_processors : auto  # 'auto', or integer number
 
-num_circuits : 1
+num_systems : 1
 num_repetitions : 1
 
 
 DE:
   mut : 0.8
+  mut_scheme : best1  # rand1, rand2, best1, best2, rtb1
   crossp : 0.8
   popsize : 20
-  its : 40
-  training_data : 2DDS # 2DDS, O2DDS, con2DDS, MMDS, wine, iris, orth
+  epochs : 20
+  batch_size : 0
+  batch_scheme : none  # none, shuffle, window
+  batch_window_size : 2
+  data_oversample : 0  # 0=off, 1=on
+  data_weighting : 0  # apply imbalance ratio as fit weight
+
+  BreakOnZeroFit : 0
+  BreakOnNcomp : na  # 'na' = 0 = no break, 300000
+
+  # 2attr: c2DDS, d2DDS (1000 instances)
+  training_data : d2DDS
 
   IntpScheme : pn_binary  # pn_binary, band_binary, band, HOW, clustering, Ridge, RidgeHOW, Kmean
-  FitScheme : error  # error, BinCrossEntropy, PCAH, ComScore (from clust)
+  FitScheme : error  # error, BCE, PCAH, ComScore (from clust), KmeanDist, KmeanSpace
+  Gbest_fit : raw # raw=Fitscheme, error
+  SigmoidCorner : 1
 
-  threshold : 0 # 5  # used for - thresh_binary
+  threshold : 0  # used for - thresh_binary Intpretation Scheme
 
-  RidgedAlpha : 0
+  RidgedAlpha : cv  # 'cv' = use cross validation, else use a number.
+  # For Vout that is similar, if alpha is too low (i.e 0) warnign is thrown
   RidgedIntercept : True
 
   pt_IntpScheme : pn_binary  # used for RCpt
   pt_FitScheme : PCAH  # used for RCpt
-  pt_final_IntpScheme : Ridge  # used for RCpt
+  pt_final_IntpScheme : RidgeHOW  # used for RCpt
   pt_final_FitScheme : error  # used for RCpt
 
-  BreakOnZeroFit : 1
-  TestVerify : 1  # use training & test dataset
+
 
   # Set whether to save data with extra attribute, and to plot
-  Add_Attribute_To_Data : 1
+  SaveExtraAttribute : 0
   PlotExtraAttribute : 1
   UseCustom_NewAttributeData : 0
   NewAttrDataDir : na
 
+  # # For EiM Interp only
   num_readout_nodes : 1  # 'na' used when the Vout are used directly, normally 1 for most schemes
   readout_scheme : none  # none, sigmoid, sigmoid_scale
 
   save_fitvit : 1  # save the fitness vs itteration graphs
 
+## Set the network size & type
 network:
-  model : D_RN  # R_RN, D_RN, NL_RN
+  model : D_RN  # R_RN, D_RN, NL_RN, NSNL_RN, TD_RN, PWL_RN
   num_input : 2
-  num_output : 2
-  num_config : 2
+  num_output : 3
+  num_config : 5
 
 
 
 genome:
-  shuffle_gene : 1
-  perm_crossp_model : none  # none, linear, box, quad, unity
 
-  InWeight_gene : 1
-  InWeight_sheme : random  # random, AddSub
-  MaxInputWeight : 1
+  Config:
+    active : 1
 
-  OutWeight_gene : 1
-  OutWeight_scheme : random  # random, AddSub
-  MaxOutputWeight : 2
+  Shuffle :
+    active : 1
+    scheme : none  # perm_crossp_model : none  # none, linear, box, quad, unity
 
-  PulseWidth_gene : 0
-  MinPulseWidth : 0.1  # ms
-  MaxPulseWidth : 100 # ms
+  InWeight:
+    active : 1
+    scheme : random  # random, AddSub
+    min : -1
+    max : 1
 
-  BandNumber_gene : 0
-  max_number_bands : defualt  # defualt makes NumBands=NumClasses
-  BandClass_gene : 0
-  BandEdge_gene : 0
-  BandWidth_gene : 0
-  BandEdge_lims : 0
+  InBias:
+    active : 0
+    min : -2
+    max : 2
 
-  HOWperm_gene : 0
+  OutWeight:
+    active : 1
+    scheme : random  # random, AddSub
+    min : -2
+    max : 2
+
+  OutBias:
+    active : 0  # Bias per readout_node (or per op if num_readout_nodes='na')
+    min : -10
+    max : 10
+
+  PulseWidth:
+    active : 0
+    min : 0.1 # ms
+    max : 100 # ms
+
+  BandNumber:
+    active : 0
+    max : defualt  # max_number_bands --> defualt makes NumBands=NumClasses
+  BandClass:
+    active : 0
+  BandEdge:
+    active : 0
+    lims : 0
+  BandWidth:
+    active : 0
+
+  HOWperm:
+    active : 0
 
 
 
@@ -83,17 +123,11 @@ spice:
 
   max_r : 100  # in kOhms
   min_r : 10 # in kOhms
-  R_array_in : na # 'na'
-    # for 5 node
-      # R = [5, 1, 10, 3, 0.1, 1, 2, 0.7, 1.5, 4]
-      # R = [56, 8.2, 20, 56, 8.2, 20, 100000, 8.2, 20, 100000]
-    # for 6 node
-      # R = [5, 1, 10, 3, 0.1, 1, 2, 0.7, 0.5, 6.3, 31.8, 10, 1000, 1000, 1000]  # in kOhm
-      # R = [5,7.7,4.8,3.2,2,1.5,8.1,1.5,6.7,4.6,7.5,0.9,1,4.5,2.2]
+  R_array_in : 'na' # pass a RRN netowrk defining array in
 
-
-  shunt_R : 70  # kOhm
-  contact_Res : 200  # Ohm
+  in_contact_R : 200  # Ohm
+  op_contact_R : 0  # Ohm
+  op_shunt_R : 70  # kOhm, or 'none'
 
   rand_dir : 1  # diode random direction toggle
   defualt_diode_dir : 1
@@ -107,13 +141,8 @@ spice:
   # # Used for uniform dist selection
   material_a_min :  33 # 3.0e+6
   material_a_max :  170
-  material_b_min :  280
+  material_b_min :  28
   material_b_max :  960
-
-  #material_a_min : 10  # nano, John 33
-  #material_a_max : 10000  # nano, John 170
-  #material_b_min : 10  # nano, John 280
-  #material_b_max : 10000  # nano, John 960
 
   # # Used for Normal Distr selection
   a_mean : 120
@@ -142,11 +171,13 @@ spice:
 
 mg:
   plotMG : 1
-  plot_defualt : 1
-  MG_vary_Vconfig : 1
-  MG_vary_PermConfig : 1
-  MG_vary_InWeight : 1
+  plot_defualt : 0
+  MG_vary_Vconfig : 0
+  MG_vary_PermConfig : 0
+  MG_vary_InWeight : 0
+  MG_vary_InBias : 0
   MG_vary_OutWeight : 1
+  MG_vary_OutputBias : 0
 
   MG_animation : 0  # evolution ani
   MG_VaryInWeightsAni : 0

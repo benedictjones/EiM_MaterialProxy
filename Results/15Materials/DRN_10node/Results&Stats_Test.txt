@@ -1,0 +1,2 @@
+Param, Mean Test Fit, Std Test Fit, Best Test Fit 
+ n/a - Not an Exp, 0.010, 0.037, 0.000 

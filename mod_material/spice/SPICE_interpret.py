@@ -1,31 +1,11 @@
 import numpy as np
 from PySpice.Unit import *
 
-
 ###############################################################################
-# Formats the output node values
+# Formats the output node values, extracting the voltage (& time) data from_
+# the analysis data object
 ###############################################################################
 
-
-def format_output(analysis, sim_mode):
-    '''
-    Gets dictionary containing SPICE sim values.
-    The dictionary is created by pairing each of the nodes to its corresponding
-    output voltage value array.
-    This provides a more managable format.
-    '''
-    sim_res_dict = {}
-    for node in analysis.nodes.values():
-        data_label = "%s" % str(node)
-        sim_res_dict[data_label] = np.array(node)
-
-    if sim_mode == 'trans':
-        t = []
-        for val in analysis.time:
-            t.append(val)
-        sim_res_dict['time'] = np.array(t)
-
-    return sim_res_dict
 
 #
 
@@ -34,7 +14,8 @@ def format_output(analysis, sim_mode):
 
 def format_Vout(analysis, pulse_Tp, CompiledDict, num_samples):
     '''
-    Format the voltages from the spice sim OUTPUT NODES
+    Format the voltages from the spice sim output analysis data object.
+    Depending on the sim type, execute different functions to read the Vout.
     '''
     SpiceDict = CompiledDict['spice']
     NetworkDict = CompiledDict['network']
@@ -42,13 +23,11 @@ def format_Vout(analysis, pulse_Tp, CompiledDict, num_samples):
     num_nodes = NetworkDict['num_input'] + NetworkDict['num_config'] + NetworkDict['num_output']
 
     if SpiceDict['sim_type'] == 'sim_dc':
-        sim_res_dict = format_output(analysis, 'dc')
-        Vout = interpret_output_dc(sim_res_dict, SpiceDict['sim_type'], num_output, num_samples)
+        Vout = interpret_output_dc(analysis, SpiceDict['sim_type'], num_output, num_samples)
         sample_time = 0
     else:
-        sim_res_dict = format_output(analysis, 'trans')
         if SpiceDict['sim_type'] == 'sim_trans_pulse':
-            Vout, sample_time = interpret_output_pulse(sim_res_dict, num_nodes, num_output, pulse_Tp, SpiceDict,  num_samples)
+            Vout, sample_time = interpret_output_pulse(analysis, num_nodes, num_output, pulse_Tp, SpiceDict,  num_samples)
         elif SpiceDict['sim_type'] == 'sim_trans_wave':
             raise ValueError("trans wave interpretation not yet added")
 
@@ -59,7 +38,7 @@ def format_Vout(analysis, pulse_Tp, CompiledDict, num_samples):
 #
 
 
-def interpret_output_dc(sim_res_dict, sim_type, num_output, num_samples):
+def interpret_output_dc(analysis, sim_type, num_output, num_samples):
     '''
     Interprets the ouput DC sweep data
     '''
@@ -72,8 +51,8 @@ def interpret_output_dc(sim_res_dict, sim_type, num_output, num_samples):
     # extract output voltages
     Vout = np.zeros((num_samples, num_output))
     for i in range(num_output):
-        key = "op%d" % (i+1)
-        for inst, val in enumerate(sim_res_dict[key]):
+        key = "op%d_conn" % (i+1)
+        for inst, val in enumerate(np.array(analysis[key])):
             Vout[inst,i] = val
 
     return Vout
@@ -83,7 +62,7 @@ def interpret_output_dc(sim_res_dict, sim_type, num_output, num_samples):
 #
 
 
-def interpret_output_pulse(sim_res_dict, num_nodes, num_output,
+def interpret_output_pulse(analysis, num_nodes, num_output,
                            pulse_Tp, SpiceDict, num_samples):
     '''
     Interprets the ouput pulse data.
@@ -100,11 +79,11 @@ def interpret_output_pulse(sim_res_dict, num_nodes, num_output,
     # generate output voltage array
     Vout = np.zeros((num_samples, num_output))
     sample_time = np.zeros((num_samples))
-    time = sim_res_dict['time']
+    sim_time = np.array(analysis.time)
 
-    chunk_size = int(len(time)/num_samples)
+    chunk_size = int(len(sim_time)/num_samples)
 
-    #print("time:\n", time)
+    #print("sim_time:\n", sim_time)
     # loop though sample times
     for s in range(num_samples):
         sample = s + 1
@@ -113,22 +92,22 @@ def interpret_output_pulse(sim_res_dict, num_nodes, num_output,
         #print(t_sample)
 
         # estimate the area that the time will occur to speed up argmin finding
-        # was idx = find_nearest(time, t_sample, time_unit) which looked at whole array
+        # was idx = find_nearest(sim_time, t_sample, time_unit) which looked at whole array
 
         #print(s*chunk_size, (s+1)*chunk_size)
         #print("chunk:\n", time[range(s*chunk_size, (s+1)*chunk_size)])
-        time_chunk = time[range(s*chunk_size, (s+1)*chunk_size)]
+        time_chunk = sim_time[range(s*chunk_size, (s+1)*chunk_size)]
         chunk_idx = find_nearest(time_chunk, t_sample, SpiceDict['trans_t_unit'])
         idx = s*chunk_size + chunk_idx
 
-        sample_time[s] = time[idx]  # this is the real sample time (closesed to the ideal sample time)
+        sample_time[s] = sim_time[idx]  # this is the real sample time (closesed to the ideal sample time)
 
         # Loop though output nodes
         for i in range(num_output):
-            key = "op%d" % (i+1)
+            key = "op%d_conn" % (i+1)
             #print(s, i)
-            v_temp = sim_res_dict[key]
-            Vout[s, i] = v_temp[idx]
+            v_array_temp = np.array(analysis[key])
+            Vout[s, i] = v_array_temp[idx]
 
     return Vout, sample_time
 

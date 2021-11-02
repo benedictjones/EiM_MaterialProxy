@@ -1,0 +1,2 @@
+Param, Mean Noisy Test Fit, Std Noisy Test Fit, Best Noisy Test Fit 
+ n/a - Not an Exp, 0.288, 0.026, 0.245 

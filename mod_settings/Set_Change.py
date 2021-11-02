@@ -11,7 +11,7 @@ Note: only parameters which have been needed to be changed are included
 '''
 
 
-def ChangeSettings(param_file='', pt='na', **kwargs):
+def ChangeSettings(param_file='', pt='na', change_dict='na', **kwargs):
     """
     Load Relevant param file, edit it, and save.
     Or, pass in a param file, edit is, and return it.
@@ -28,7 +28,10 @@ def ChangeSettings(param_file='', pt='na', **kwargs):
         CompiledDict = LoadSettings(param_file)
         save_tog = 1
 
-    # # Check to see if there is anything to change
+    print("kwargs:\n", kwargs)
+
+    # # Check to see if there is anything to change from kwargs
+    # (Only goes 2 key levels deep)
     if len(kwargs.keys()) != 0:
 
         # # loop though Key Value **kwargs List
@@ -40,9 +43,34 @@ def ChangeSettings(param_file='', pt='na', **kwargs):
                 continue
 
             c = 0
+            #print("\n>", k)
+            """#
+            # assign value to a parent param dict heading
+            if isinstance(v, list):
+
+                if len(v) == 2:
+                    if k in CompiledDict[v[0]].keys():
+                        CompiledDict[v[0]][k] = v[1]
+                        c = c + 1
+                elif len(v) == 3:
+                    if v[0] in CompiledDict[k].keys():
+                        if k in CompiledDict[[v[0]]][v[1]].keys():
+                            CompiledDict[v[0]][v[1]][k] = v[2]
+                            c = c + 1
+                else:
+                    raise ValueError("Does not support param tree headers of this length:", len(v)-1)
+            #"""
+
+
+            # Otherise just assign to the location, no matter the "path"
+            #else:
+
+            # # Try to assign to top level dict key
             if k in CompiledDict.keys():
                 CompiledDict[k] = v
                 c = c + 1
+
+            # # Try and assign to 2nd level dict key
             for key, value in CompiledDict.items():
                 if isinstance(value, dict):
                     if k in value.keys():
@@ -52,13 +80,39 @@ def ChangeSettings(param_file='', pt='na', **kwargs):
             if c == 0:
                 failed_key.append(k)  # record failed keys
 
-            """ # stop double assignment - catually ok
+            # stop double assignment - catually ok
             if c > 1:
                 raise ValueError("Assigned a value to two different keys!")
-            """
+
+        #
 
         if len(failed_key) != 0:
-            raise ValueError("\nWarning (Set_Change.py): Failed Assignment of keys include:", failed_key, "\n")
+            raise ValueError("Warning (Set_Change.py): Failed Assignment of keys include:", failed_key)
+
+    # # Check to see if there is anything to change from the change_dict
+    if isinstance(change_dict, dict):
+        print(change_dict)
+
+        """
+        for k, v in change_dict.items():
+
+            if k in CompiledDict.keys():
+                if isinstance(v, dict) == False:
+                    CompiledDict[k] = v
+                else:
+
+                    for k2, v2 in change_dict[k].items():
+                        if k2 in CompiledDict[k].keys():
+                            if isinstance(v2, dict) == False:
+                                CompiledDict[k][k2] = v2
+                            else:
+                                for k3, v3 in change_dict[k][k2].items():
+                                    if k3 in CompiledDict[k][k2].keys():
+                                        if isinstance(v3, dict) == False:
+                                            CompiledDict[k][k2][k3] = v3
+                                        else:
+                                            raise ValueError("Can only assign ChangeDict that is 3 layers deep.")
+        """
 
     # ################################################################
     # # Toggle vales if pre-training

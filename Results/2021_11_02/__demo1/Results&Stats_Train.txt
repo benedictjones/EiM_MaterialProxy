@@ -1,0 +1,2 @@
+Param, Mean Final Train Fit, Std Final Train Fit, Best FinalTrain Fit 
+ n/a - Not an Exp, 0.000, 0.000, 0.000 

@@ -24,7 +24,7 @@ from the looped DE.
 
 class analysis(Animation, plotting, material_graphs):
 
-    def __init__(self, dir_list, dir_RefNameList=0, save_loc=0, format='pdf', dpi=400):
+    def __init__(self, dir_list, dir_RefNameList=0, save_loc=0, format='png', dpi=400):
 
         plotting.__init__(self)
         Animation.__init__(self)
@@ -52,7 +52,7 @@ class analysis(Animation, plotting, material_graphs):
 
             # check for the indicaters in the split file dir
             for bit in split_data_dir:
-                if bit == 'Experiment_List':
+                if bit == 'Results_Experiments' or bit == 'Experiment_List':
                     current_dir = 'Experiment_List'
                     break
                 if bit == 'Results':
@@ -65,17 +65,13 @@ class analysis(Animation, plotting, material_graphs):
                 if k == 0:
                     self.exp = 1
                 elif k != 0 and self.exp == 0:
-                    print("Error (Analysis.py): Input files must be of the same type")
-                    print("ABORTED")
-                    exit()
+                    raise ValueError("Input files must be of the same type")
 
             elif current_dir == 'Results':
                 if k == 0:
                     self.exp = 0
                 elif k != 0 and self.exp == 1:
-                    print("Error (Analysis.py): Input files must be of the same type")
-                    print("ABORTED")
-                    exit()
+                    raise ValueError("Input files must be of the same type")
             k = k + 1
 
         print("dir_RefNameList", dir_RefNameList)
@@ -129,7 +125,7 @@ class analysis(Animation, plotting, material_graphs):
             if not os.path.exists(self.save_dir):
                 os.makedirs(self.save_dir)
 
-        print("** self.save_dir: ", self.save_dir)
+        print(">> self.save_dir: ", self.save_dir)
 
 
         # Extract Data depending on single run, or experiment run, or from a list of experiments/result files

@@ -1,0 +1,207 @@
+DE:
+  BreakOnNcomp: na
+  BreakOnZeroFit: 0
+  ClassWeights:
+  - !!python/object/apply:numpy.core.multiarray.scalar
+    - &id001 !!python/object/apply:numpy.dtype
+      args:
+      - f8
+      - false
+      - true
+      state: !!python/tuple
+      - 3
+      - <
+      - null
+      - null
+      - null
+      - -1
+      - -1
+      - 0
+    - !!binary |
+      AAAAAAAA8D8=
+  - !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      AAAAAAAA8D8=
+  ClassWeights_text: '[1. 1.]'
+  FitScheme: error
+  Gbest_fit: raw
+  IntpScheme: pn_binary
+  NewAttrDataDir: na
+  PlotExtraAttribute: 1
+  RidgedAlpha: cv
+  RidgedIntercept: true
+  SaveExtraAttribute: 0
+  SigmoidCorner: 1
+  UseCustom_NewAttributeData: 0
+  batch_scheme: none
+  batch_size: 0
+  batch_window_size: 2
+  bounds:
+  - - - -5
+      - 5
+    - - -5
+      - 5
+    - - -5
+      - 5
+    - - -5
+      - 5
+  - - - 0
+      - 719
+  - - - -2
+      - 2
+    - - -2
+      - 2
+    - - -2
+      - 2
+    - - -2
+      - 2
+  crossp: 0.8
+  data_oversample: 0
+  data_weighting: 0
+  dimensions: 9
+  epochs: 20
+  mut: 0.8
+  mut_scheme: best1
+  num_classes: 2
+  num_output_readings: 1
+  num_readout_nodes: 1
+  popsize: 20
+  pt_FitScheme: PCAH
+  pt_IntpScheme: pn_binary
+  pt_final_FitScheme: error
+  pt_final_IntpScheme: RidgeHOW
+  readout_scheme: none
+  save_fitvit: 1
+  threshold: 1.5
+  training_data: c2DDS
+ReUse_dir: na
+SaveDir: Results/2021_05_28/__16_52_40__c2DDS__NL_RN__EiM
+algorithm: EiM
+experiment:
+  active: 0
+genome:
+  BandClass:
+    active: 0
+    max: 2
+    min: 1
+  BandEdge:
+    active: 0
+    lims: 0
+  BandNumber:
+    active: 0
+    max: 2
+    min: 2
+  BandWidth:
+    active: 0
+  Config:
+    active: 1
+    loc: 0
+  HOWperm:
+    active: 0
+  InBias:
+    active: 0
+    max: 2
+    min: -2
+  InWeight:
+    active: 0
+    max: 1
+    min: -1
+    scheme: random
+  OutBias:
+    active: 0
+    max: 10
+    min: -10
+  OutWeight:
+    active: 1
+    loc: 2
+    max: 2
+    min: -2
+    scheme: random
+  PulseWidth:
+    active: 0
+    max: 100
+    min: 0.1
+  Shuffle:
+    active: 1
+    loc: 1
+    scheme: none
+  grouping:
+  - 4
+  - 1
+  - 4
+mg:
+  MG_VaryInWeightsAni: 0
+  MG_VaryLargeInWeightsAni: 0
+  MG_VaryLargeOutWeightsAni: 0
+  MG_VaryOutWeightsAni: 0
+  MG_animation: 0
+  MG_vary_InBias: 0
+  MG_vary_InWeight: 1
+  MG_vary_OutWeight: 1
+  MG_vary_OutputBias: 0
+  MG_vary_PermConfig: 0
+  MG_vary_Vconfig: 0
+  plotMG: 0
+  plot_defualt: 0
+network:
+  model: NL_RN
+  num_config: 4
+  num_input: 2
+  num_output: 4
+  total_num_nodes: 10
+num_processors: auto
+num_repetitions: 1
+num_systems: 15
+op_layer: evolved
+param_file: ''
+ptype: EiM
+spice:
+  ConfigPerLayer: na
+  DefualtDiode: 1
+  NN_max_r: 1000
+  NodesPerLayer: na
+  ParallelCapLim:
+  - 0.1
+  - 10
+  R_array_in:
+  - 56
+  - 8.2
+  - 20
+  - 56
+  - 8.2
+  - 20
+  - 100000
+  - 8.2
+  - 20
+  - 100000
+  ShuntCapLim:
+  - 0.1
+  - 10
+  Vmax: 5
+  Vmin: -5
+  a_mean: 120
+  a_std: 448
+  b_mean: 560
+  b_std: 270
+  corr: 0
+  defualt_diode_dir: 1
+  in_contact_R: 200
+  material_a_max: 170
+  material_a_min: 33
+  material_b_max: 960
+  material_b_min: 28
+  max_r: 100
+  min_r: 10
+  model: NL_RN
+  num_layers: 1
+  op_contact_R: 0
+  op_shunt_R: 70
+  parallelC: 0
+  pulse_TT: 0.0045
+  pulse_Tp: 100
+  rand_dir: 1
+  rloc: 0.75
+  shuntC: 0
+  sim_type: sim_dc
+  trans_t_unit: m

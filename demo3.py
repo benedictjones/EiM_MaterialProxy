@@ -1,65 +1,181 @@
+from datetime import datetime
+import os
+import copy
+
 from runEiM import RunEiM
-
+from mod_analysis.Analysis import analysis
+from mod_settings.GenParam import GenSimParam, LoadPrm
 
 """
-*** Demo for a multiple runs.***
+## Demo 3 ##
 
-When comparing the effect of different parameters or algorithm features, we
-should re use the same materials. This allows for a direct comparison.
-To do this we can set a target results file (which contains a saved network
-topology, produced when material re-use is not enabled).
-An example can be seen in demo3.py, this will run the DE on a previously saved
-netowrk topology.
+You can run the Demo3.py file which allows you to loop though some
+sequence of parameters, executing each on the RunEiM function.
+In this example we have a paramater list of [0,1] which we use to vary whether
+the shuffle gene is not active (0), or active (1).
+
+In this experiment we generate a new group of num_systems number of
+materials. These are then reused each loop.
+
+The experiment results will be saved in the Results_experiemts folder, with
+higher level graphs comparing the results.
+However, the actual underlying data from the individual loops are still saved
+in the Results folder.
+
 """
 
 
+# Main script
 if __name__ == "__main__":
 
-    # # load in previous files to use previous material processors
-    Model = 'D_RN'  # select material model
+    # load Template Raw (unformatted) Paramaters from param%s.yaml
+    trprm = LoadPrm(param_file='')
 
-    if Model == 'R_RN':
-        # load a Resistor Random Netowrk from a target file
-        # this file contains 10 circuits each with exp_num_input=2, exp_num_output=2, exp_num_config=3
-        ReUse_dir = 'Results/_2020_11_17_eg/__17_26_54__2DDS__R_RN__EiM'
-    elif Model == 'D_RN':
-        # load a Diode Random Netowrk from a target file
-        # this file contains 10 circuits each with exp_num_input=2, exp_num_output=2, exp_num_config=3
-        ReUse_dir = 'Results/_2020_11_17_eg/__17_24_56__2DDS__D_RN__EiM'
+    # #set the model types which the experiments will be repeated for
+    Model_types = ['D_RN']  # or use ['R_RN', 'D_RN', 'NL_RN']
+    datasets = ['c2DDS']  # or use ['d2DDS', 'c2DDS', 'flipped_2DDS']
+
+    #
+
+    #
+
+    # # Run for each dataset
+    for dataset in datasets:
+
+        # Run Experiment for each material model
+        for Model in Model_types:
+            print("*************************************************************")
+            print("Experiment - Material Model:", Model)
+            print("*************************************************************")
+
+            # # Collect time and dat stamp of experiment
+            now = datetime.now()
+            real_d_string = now.strftime("%d_%m_%Y")
+            d_string = now.strftime("%Y_%m_%d")
+            t_string = now.strftime("%H_%M_%S")
+            print("Date:", real_d_string, ", Time Stamp:", t_string)
+
+            #
+
+            # # Assign Details
+            num_inputs = 2
+
+            #
+
+            # # Name the experiment, and add to folder name
+            exp_name = 'Example_UsingShuffle_%s' % (Model)
+            Param_Varying = 'Vary the use of the shuffle gene'
+            experiment_file = '%s/%s__%s___EXP_%s' % (dataset, d_string, t_string, exp_name)
+
+            # # Set parameter which will vary
+            Param_array = [0,1]
+
+            # # Do not load in previously generated circuits
+            ReUse_dir = 'na'  # set defualt to 'na, this is assigned at the end of first loop'
+
+            #
+
+            num_experiments = len(Param_array)  # extracts the total num of loops
+            for ex_loop, Param in enumerate(Param_array):
+
+                print("##################################################")
+                print("Experiment", ex_loop, "Out of:", num_experiments-1)
+                print("##################################################")
+
+                # # Create a raw (unformatted) paramater file from the loadted template
+                rprm = copy.deepcopy(trprm)
+
+                # Alter Prms
+                rprm['ReUse_dir'] = ReUse_dir
+                rprm['num_systems'] = 1
+                rprm['num_repetitions'] = 3
+
+                rprm['DE']['epochs'] = 20
+                rprm['DE']['training_data'] = dataset
+                rprm['DE']['save_fitvit'] = 0
+
+                rprm['network']['model'] = Model
+                rprm['network']['num_input'] = num_inputs
+
+                rprm['genome']['Shuffle']['active'] = Param
+                rprm['genome']['InWeight']['active'] = 0
+                rprm['genome']['OutWeight']['active'] = 0
+
+                rprm['mg']['plotMG'] = 1  # disable material plots
+
+                # Gen final prm dict
+                prm = GenSimParam(param_file=rprm,
+                                  experiment=1,
+                                  experiment_file=experiment_file,
+                                  exp_name=exp_name)
+
+                # # Run EiM
+                RunEiM(prm, experiment_loop=ex_loop)
+
+                # # Save the results path and toggle the reuse paramater
+                if ex_loop == 0:
+
+                    # Set the exp to use the same materials from the first for each subsequent loop
+                    ReUse_dir = prm['SaveDir']
+
+                    # save current dir to file
+                    with open('%s/DataDir.csv' % (prm['experiment']['file']), 'w') as dir_result_file:
+                        dir_result_file.write(prm['SaveDir'])
+                        dir_result_file.write("\n")
+
+                else:
+                    # Append new dir of the results to file
+                    with open('%s/DataDir.csv' % (prm['experiment']['file']), 'a') as dir_result_file:
+                        dir_result_file.write(prm['SaveDir'])
+                        dir_result_file.write("\n")
 
 
-    # # Run Evolutionary Process
-    output_dir = RunEiM(num_circuits=3, num_repetitions=1,
-                        its=10, popsize=10,
-                        #
-                        model=Model,  # R_RN or D_RN
-                        num_input=2, num_output=2, num_config=2,  # number of each node type
-                        #
-                        plotMG=1,  # Sets surface plots of Y to be produced.
-                        plot_defualt=1,
-                        MG_vary_Vconfig=0, MG_vary_PermConfig=0,
-                        MG_vary_InWeight=0, MG_vary_OutWeight=0,
-                        #
-                        training_data='2DDS',  # Select a DataSet: 2DDS, O2DDS, con2DDS, MMDS
-                        #
-                        shuffle_gene=0,  # Shuffle gene
-                        InWeight_gene=0,  # Input Weights
-                        OutWeight_gene=0,  # Output weights
-                        #
-                        IntpScheme='pn_binary',
-                        FitScheme='error',  # fitness scheme
-                        TestVerify=1,  # can toggle whether we use verification/test data
-                        #
-                        exp_ReUse_dir=ReUse_dir,
-                        #
-                        num_processors=4  # Number of cores to be used, can set to 'max'
-                        )
+                # increment experiment loop
+                ex_loop = ex_loop + 1
+
+            #######################################################################
+            # Save some data about the experiment
+            #######################################################################
+            Param_String = ''
+            for Parameter in Param_array:
+                Param_String = '%s%s \n' % (Param_String, str(Parameter))
+            Param_String = '%s\n%s' % (Param_String, str(Param_Varying))
+
+            path_params = "%s/Param_array.txt" % (prm['experiment']['file'])
+            file1 = open(path_params, "w")
+            file1.write(Param_String)
+            file1.close()
+
+            # ########################################################################
+            # Run Analysis and save plots to exp dir
+            # ########################################################################
+            print("\nProducing Exp analysis graphs...")
+            obj_anly = analysis(prm['experiment']['file'], format='png')
+
+            obj_anly.Plt_basic(Save_NotShow=1, fill=1, ExpErrors=1, StandardError=1)
+            obj_anly.Plt__ani(Save_NotShow=1)
+
+            # # Print end time
+            now = datetime.now()
+            d_string_fin = now.strftime("%d_%m_%Y")
+            t_string_fin = now.strftime("%H_%M_%S")
+            print("\nExperiment Finished at:", t_string_fin)
+
+    #
+
+    #
+
+    #
+
+    #
+
+    #
+
+    #
 
 
 
 
-#
 
-#
 
 # fin

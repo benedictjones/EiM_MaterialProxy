@@ -60,7 +60,7 @@ def Plt__Av_FvIt(DirList, Save_NotShow=0, show=1, fill=0, ExpErrors=0,
         cir_MEAN_pop_std_fit_list = []
         cir_MEAN_veri_fit = []
         cir_std_list = []
-        for cir in range(MetaData['num_circuits']):
+        for syst in range(MetaData['num_systems']):
 
             if MetaData['num_repetitions'] > 1:
                 rep_fit_list = []
@@ -68,7 +68,7 @@ def Plt__Av_FvIt(DirList, Save_NotShow=0, show=1, fill=0, ExpErrors=0,
                 rep_pop_std_fit_list = []
                 rep_veri_fit_list = []
                 for rep in range(MetaData['num_repetitions']):
-                    location = "%s/data_%d_rep%d.hdf5" % (DirList[curr_dir], cir, rep)
+                    location = "%s/data_%d_rep%d.hdf5" % (DirList[curr_dir], syst, rep)
                     with h5py.File(location, 'r') as hdf:
                         rep_fit_list.append(np.array(hdf.get('/DE_data/fitness')))
                         rep_pop_mean_fit_list.append(np.array(hdf.get('/DE_data/pop_mean_fit')))
@@ -93,7 +93,7 @@ def Plt__Av_FvIt(DirList, Save_NotShow=0, show=1, fill=0, ExpErrors=0,
 
             else:
                 # if only one rep, just let equal
-                location = "%s/data_%d_rep%d.hdf5" % (DirList[curr_dir], cir, 0)
+                location = "%s/data_%d_rep%d.hdf5" % (DirList[curr_dir], syst, 0)
                 with h5py.File(location, 'r') as hdf:
                     cir_MEAN_fit_list = np.array(hdf.get('/DE_data/fitness'))
                     cir_MEAN_pop_mean_fit_list = np.array(hdf.get('/DE_data/pop_mean_fit'))
@@ -102,7 +102,7 @@ def Plt__Av_FvIt(DirList, Save_NotShow=0, show=1, fill=0, ExpErrors=0,
                     cir_std_list = np.zeros(len(cir_MEAN_fit_list))
 
 
-            if MetaData['num_circuits'] > 1:
+            if MetaData['num_systems'] > 1:
 
                 cir_MEAN_fit_matrix = np.concatenate((cir_MEAN_fit_list), axis=1)
                 cir_MEAN_pop_mean_fit_matrix = np.concatenate((cir_MEAN_pop_mean_fit_list), axis=1)

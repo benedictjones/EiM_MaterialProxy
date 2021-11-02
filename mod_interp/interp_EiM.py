@@ -6,7 +6,6 @@ import h5py
 # import sklearn.cluster as cl
 # import sklearn.metrics as met
 
-from sklearn.linear_model import Ridge
 import sklearn.cluster as cl
 from mod_methods.FetchPerm import IndexPerm, reorder
 
@@ -21,31 +20,36 @@ These include:
 '''
 
 
-def compute_EiM_ouputs(genome, Vout, data_Y, CompiledDict, the_data=0):
+def compute_EiM_ouputs(genome, Vout, data_Y, prm):
 
 
-    ParamDict = CompiledDict['DE']
-    NetworkDict = CompiledDict['network']
-    GenomeDict = CompiledDict['genome']
+    ParamDict = prm['DE']
+    NetworkDict = prm['network']
+    GenomeDict = prm['genome']
+
+    #print(">", genome)
 
     # # # # # # # # # # # #
     # Apply Output Weights
 
     if ParamDict['num_readout_nodes'] == 'na':
-        if GenomeDict['OutWeight_gene'] == 1:
-            op = np.zeros(Vout.shape)
-            OW = genome[GenomeDict['out_weight_gene_loc']]
-            #print("<", OW)
-            for i in range(len(Vout[0,:])):
-                op[:,i] = Vout[:,i]*OW[i]
 
-        elif GenomeDict['OutWeight_gene'] == 0:
-            op = Vout
+        op = Vout
+
+        if GenomeDict['OutWeight']['active'] == 1:
+            OW = genome[GenomeDict['OutWeight']['loc']]
+            for i in range(len(op[0,:])):
+                op[:,i] = op[:,i]*OW[i]
+
+        if GenomeDict['OutBias']['active'] == 1:
+            OB = genome[GenomeDict['OutBias']['loc']]
+            for i in range(len(op[0,:])):
+                op[:,i] = op[:,i] + OB[i]
 
     else:
-        if GenomeDict['OutWeight_gene'] == 1:
+        if GenomeDict['OutWeight']['active'] == 1:
             op = np.zeros((len(Vout[:,0]), ParamDict['num_readout_nodes']))
-            OW = genome[GenomeDict['out_weight_gene_loc']]
+            OW = genome[GenomeDict['OutWeight']['loc']]
             #print(">", OW)
             for out_dim in range(ParamDict['num_readout_nodes']):
                 temp = np.zeros(Vout.shape)
@@ -56,54 +60,60 @@ def compute_EiM_ouputs(genome, Vout, data_Y, CompiledDict, the_data=0):
                 temp_final = apply_readout_scheme(ParamDict['readout_scheme'], temp_sum)
                 op[:,out_dim] = temp_final
 
-        elif GenomeDict['OutWeight_gene'] == 0:
+        elif GenomeDict['OutWeight']['active'] == 0:
             op = np.zeros((len(Vout[:,0]), ParamDict['num_readout_nodes']))
             for out_dim in range(ParamDict['num_readout_nodes']):
                 temp_sum = np.sum(Vout, axis=1)
                 temp_final = apply_readout_scheme(ParamDict['readout_scheme'], temp_sum)
                 op[:,out_dim] = temp_final
 
+        # # introduce output bias to each readout node
+        if GenomeDict['OutBias']['active'] == 1:
+            OB = genome[GenomeDict['OutBias']['loc']]
+            for i in range(len(op[0,:])):
+                op[:,i] = op[:,i] + OB[i]
+
     #
 
     # # # # Schemes # # # #
     # Interpret for band binary
-    if CompiledDict['DE']['IntpScheme'] == 'band_binary':
-        class_out, responceY, handle = binary(genome, op, CompiledDict)
+    if prm['DE']['IntpScheme'] == 'band_binary':
+        class_out, responceY, handle = binary(genome, op, prm)
     #
 
     # Interpret for +/- binary
-    elif CompiledDict['DE']['IntpScheme'] == 'pn_binary' or CompiledDict['DE']['IntpScheme'] == 'thresh_binary':
-        class_out, responceY, handle = binary(genome, op, CompiledDict)
+    elif prm['DE']['IntpScheme'] == 'pn_binary' or prm['DE']['IntpScheme'] == 'thresh_binary':
+        class_out, responceY, handle = binary(genome, op, prm)
     #
 
     # Interpret for using varying bands
-    elif CompiledDict['DE']['IntpScheme'] == 'band':
-        class_out, responceY = band(genome, op, CompiledDict)
+    elif prm['DE']['IntpScheme'] == 'band':
+        class_out, responceY = band(genome, op, prm)
 
     # Interpret for using highest output wins
-    elif CompiledDict['DE']['IntpScheme'] == 'HOW':
-        class_out, responceY, handle = highest_output_wins(genome, op, CompiledDict)
+    elif prm['DE']['IntpScheme'] == 'HOW':
+        class_out, responceY, handle = highest_output_wins(genome, op, prm)
 
     # if we just want the output retuned with no class assignment
-    elif CompiledDict['DE']['IntpScheme'] == 'raw':
-        class_out = np.zeros(len(Vout[:,0]))*-1
+    elif prm['DE']['IntpScheme'] == 'raw':
+        class_out = np.ones(len(Vout[:,0]))*-1
         responceY = op
         handle = 0
-        #print(">> EiM Raw hit ")
+        #print(">> EiM Raw hit \n", responceY)
 
     # Interpret for using clustering
-    elif CompiledDict['DE']['IntpScheme'] == 'Kmean':
-        class_out, responceY, handle = cluster(genome, op, CompiledDict)
+    elif prm['DE']['IntpScheme'] == 'Kmean':
+        class_out, responceY, handle = cluster(genome, op, prm)
 
     else:  # i.e input is wrong / not vailable
-        raise ValueError('(interpretation_scheme): Invalid scheme %s' % (CompiledDict['DE']['IntpScheme']))
+        raise ValueError('(interpretation_scheme): Invalid scheme %s' % (prm['DE']['IntpScheme']))
 
 
     class_out = np.asarray(class_out)
     responceY = np.asarray(responceY)
 
     """ # To see the op graphs
-    if ParamDict['num_readout_nodes'] == 2 and GenomeDict['OutWeight_gene'] == 1:
+    if ParamDict['num_readout_nodes'] == 2 and GenomeDict['OutWeight']['active'] == 1:
         Vout = op
     #"""
 
@@ -136,14 +146,9 @@ def apply_readout_scheme(scheme, array):
 
 #
 
-def binary(genome, op, Dict):
+def binary(genome, op, prm):
 
-    CompiledDict = Dict
-
-    ParamDict = CompiledDict['DE']
-    NetworkDict = CompiledDict['network']
-    GenomeDict = CompiledDict['genome']
-    scheme = CompiledDict['DE']['IntpScheme']
+    scheme = prm['DE']['IntpScheme']
 
     class_out = []
     responceY = []
@@ -176,7 +181,7 @@ def binary(genome, op, Dict):
                 class_out.append(1)
                 responceY.append(reading)
         elif scheme == 'thresh_binary':
-            if reading >= ParamDict['threshold']:
+            if reading >= prm['DE']['threshold']:
                 class_out.append(2)
                 responceY.append(reading)
             else:
@@ -195,27 +200,25 @@ def binary(genome, op, Dict):
 
 #
 
-def band(genome, op,  Dict):
+def band(genome, op,  prm):
 
-    CompiledDict = Dict
+    ParamDict = prm['DE']
+    NetworkDict = prm['network']
+    GenomeDict = prm['genome']
 
-    ParamDict = CompiledDict['DE']
-    NetworkDict = CompiledDict['network']
-    GenomeDict = CompiledDict['genome']
-
-    if GenomeDict['BandNumber_gene'] == 1:
-        num_bands = int(genome[GenomeDict['BandNumber_gene_loc']])
+    if GenomeDict['BandNumber']['active'] == 1:
+        num_bands = int(genome[GenomeDict['BandNumber']['loc']])
     else:
-        num_bands = int(GenomeDict['max_number_bands'])
+        num_bands = int(GenomeDict['BandNumber']['max'])
 
     #print(">> num_bands", num_bands)
 
-    if GenomeDict['BandClass_gene'] == 1:
-        BandClass_gene_loc = GenomeDict['BandClass_gene_loc']
+    if GenomeDict['BandClass']['active'] == 1:
+        BandClass_gene_loc = GenomeDict['BandClass']['loc']
         band_classes = genome[BandClass_gene_loc[0]:BandClass_gene_loc[1]]
         band_classes = band_classes.astype(int)
     else:
-        basic_classes = np.arange(GenomeDict['min_class_value'], GenomeDict['max_class_value']+1)
+        basic_classes = np.arange(GenomeDict['BandClass']['min'], GenomeDict['BandClass']['max']+1)
         band_classes = basic_classes
         while 1:
             if len(band_classes) < num_bands:
@@ -229,12 +232,12 @@ def band(genome, op,  Dict):
     #raise ValueError("Fin")
 
     # extract bad edges a & b
-    if GenomeDict['BandEdge_gene'] == 1:
-        BandEdge_genes = genome[GenomeDict['BandEdge_gene_loc']]
+    if GenomeDict['BandEdge']['active'] == 1:
+        BandEdge_genes = genome[GenomeDict['BandEdge']['loc']]
         a = BandEdge_genes[0]
         b = BandEdge_genes[1]
     else:
-        a, b = GenomeDict['BandEdge_lims']
+        a, b = GenomeDict['BandEdge']['lims']
 
 
     # for band positions
@@ -242,10 +245,10 @@ def band(genome, op,  Dict):
     unit_offset = unit_b/2
 
     # see if the boundatry posisitions eveolves
-    if GenomeDict['BandWidth_gene'] == 1:
-        b_offset = genome[GenomeDict['BandWidth_gene_loc']]  # determin the bounary offset
+    if GenomeDict['BandWidth']['active'] == 1:
+        b_offset = genome[GenomeDict['BandWidth']['loc']]  # determin the bounary offset
     else:
-        b_offset = np.zeros(GenomeDict['max_number_bands']-1)
+        b_offset = np.zeros(GenomeDict['BandNumber']['max']-1)
 
 
 
@@ -299,16 +302,16 @@ def band(genome, op,  Dict):
 #
 
 
-def highest_output_wins(genome, op, Dict):
+def highest_output_wins(genome, op, prm):
     """
     Simply measure the outputs, using a particular perm (defualt is just the output
     node sequence) assign a class to the highest output.
     """
 
-    CompiledDict = Dict
-    ParamDict = CompiledDict['DE']
-    NetworkDict = CompiledDict['network']
-    GenomeDict = CompiledDict['genome']
+    prm = prm
+    ParamDict = prm['DE']
+    NetworkDict = prm['network']
+    GenomeDict = prm['genome']
 
     if ParamDict['num_readout_nodes'] != 'na':
         num_logical_op = ParamDict['num_readout_nodes']
@@ -316,14 +319,14 @@ def highest_output_wins(genome, op, Dict):
         num_logical_op = NetworkDict['num_output']
 
     # create class options
-    out_class = np.arange(GenomeDict['min_class_value'], GenomeDict['max_class_value']+1)
+    out_class = np.arange(GenomeDict['BandClass']['min'], GenomeDict['BandClass']['max']+1)
     if len(out_class) != num_logical_op:
         print(out_class)
         raise ValueError("Generated output class array selection is incorrect!")
 
     # check if output class order is being changed
-    if GenomeDict['HOWperm_gene'] == 1:
-        HOW_perm_gene_loc = GenomeDict['HOW_perm_gene_loc']
+    if GenomeDict['HOWperm']['active'] == 1:
+        HOW_perm_gene_loc = GenomeDict['HOWperm']['loc']
         HOW_perm_gene = genome[HOW_perm_gene_loc]
         order = IndexPerm(num_logical_op, HOW_perm_gene)
         out_class_ordered = reorder(out_class, order)
@@ -355,7 +358,7 @@ def highest_output_wins(genome, op, Dict):
 
 #
 
-def cluster(genome, op, Dict):
+def cluster(genome, op, prm):
     """
     Apply a clustring algorithm to produce a responce which is the assigned
     classes.
@@ -364,17 +367,11 @@ def cluster(genome, op, Dict):
     responce values and use clustring in the FitScheme!
     """
 
-    CompiledDict = Dict
-    ParamDict = CompiledDict['DE']
-    NetworkDict = CompiledDict['network']
-    GenomeDict = CompiledDict['genome']
-
-
+    ParamDict = prm['DE']
 
     class_out = []
 
-
-    model = cl.KMeans(ParamDict['num_classes'])
+    model = cl.KMeans(ParamDict['num_classes'], n_jobs=1)
     model.fit(op)
     yhat = model.predict(op) # assign a cluster to each example
 

@@ -1,0 +1,285 @@
+.title RandomNetwork
+.subckt SubCir1 in out
+D1 mid out DefualtDiode
+R1 in mid 74.9261kOhm
+.ends SubCir1
+
+.subckt SubCir2 in out
+D1 mid in DefualtDiode
+R1 mid out 68.4535kOhm
+.ends SubCir2
+
+.subckt SubCir3 in out
+D1 mid in DefualtDiode
+R1 mid out 10.297kOhm
+.ends SubCir3
+
+.subckt SubCir4 in out
+D1 mid out DefualtDiode
+R1 in mid 31.3653kOhm
+.ends SubCir4
+
+.subckt SubCir5 in out
+D1 mid out DefualtDiode
+R1 in mid 37.314kOhm
+.ends SubCir5
+
+.subckt SubCir6 in out
+D1 mid in DefualtDiode
+R1 mid out 29.7187kOhm
+.ends SubCir6
+
+.subckt SubCir7 in out
+D1 mid out DefualtDiode
+R1 in mid 53.5557kOhm
+.ends SubCir7
+
+.subckt SubCir8 in out
+D1 mid out DefualtDiode
+R1 in mid 67.8132kOhm
+.ends SubCir8
+
+.subckt SubCir9 in out
+D1 mid in DefualtDiode
+R1 mid out 10.5768kOhm
+.ends SubCir9
+
+.subckt SubCir10 in out
+D1 mid out DefualtDiode
+R1 in mid 30.4736kOhm
+.ends SubCir10
+
+.subckt SubCir11 in out
+D1 mid in DefualtDiode
+R1 mid out 61.105kOhm
+.ends SubCir11
+
+.subckt SubCir12 in out
+D1 mid out DefualtDiode
+R1 in mid 32.959kOhm
+.ends SubCir12
+
+.subckt SubCir13 in out
+D1 mid in DefualtDiode
+R1 mid out 90.7374kOhm
+.ends SubCir13
+
+.subckt SubCir14 in out
+D1 mid out DefualtDiode
+R1 in mid 11.8544kOhm
+.ends SubCir14
+
+.subckt SubCir15 in out
+D1 mid in DefualtDiode
+R1 mid out 60.057kOhm
+.ends SubCir15
+
+.subckt SubCir16 in out
+D1 mid in DefualtDiode
+R1 mid out 14.7048kOhm
+.ends SubCir16
+
+.subckt SubCir17 in out
+D1 mid out DefualtDiode
+R1 in mid 96.047kOhm
+.ends SubCir17
+
+.subckt SubCir18 in out
+D1 mid in DefualtDiode
+R1 mid out 69.6312kOhm
+.ends SubCir18
+
+.subckt SubCir19 in out
+D1 mid out DefualtDiode
+R1 in mid 85.6979kOhm
+.ends SubCir19
+
+.subckt SubCir20 in out
+D1 mid in DefualtDiode
+R1 mid out 14.6445kOhm
+.ends SubCir20
+
+.subckt SubCir21 in out
+D1 mid out DefualtDiode
+R1 in mid 19.7165kOhm
+.ends SubCir21
+
+.subckt SubCir22 in out
+D1 mid in DefualtDiode
+R1 mid out 58.9053kOhm
+.ends SubCir22
+
+.subckt SubCir23 in out
+D1 mid in DefualtDiode
+R1 mid out 38.1777kOhm
+.ends SubCir23
+
+.subckt SubCir24 in out
+D1 mid in DefualtDiode
+R1 mid out 45.9723kOhm
+.ends SubCir24
+
+.subckt SubCir25 in out
+D1 mid out DefualtDiode
+R1 in mid 79.2585kOhm
+.ends SubCir25
+
+.subckt SubCir26 in out
+D1 mid in DefualtDiode
+R1 mid out 65.6901kOhm
+.ends SubCir26
+
+.subckt SubCir27 in out
+D1 mid out DefualtDiode
+R1 in mid 10.2109kOhm
+.ends SubCir27
+
+.subckt SubCir28 in out
+D1 mid in DefualtDiode
+R1 mid out 30.7647kOhm
+.ends SubCir28
+
+.subckt SubCir29 in out
+D1 mid in DefualtDiode
+R1 mid out 98.1443kOhm
+.ends SubCir29
+
+.subckt SubCir30 in out
+D1 mid out DefualtDiode
+R1 in mid 44.6553kOhm
+.ends SubCir30
+
+.subckt SubCir31 in out
+D1 mid in DefualtDiode
+R1 mid out 80.1843kOhm
+.ends SubCir31
+
+.subckt SubCir32 in out
+D1 mid out DefualtDiode
+R1 in mid 15.82kOhm
+.ends SubCir32
+
+.subckt SubCir33 in out
+D1 mid in DefualtDiode
+R1 mid out 63.1784kOhm
+.ends SubCir33
+
+.subckt SubCir34 in out
+D1 mid in DefualtDiode
+R1 mid out 98.3865kOhm
+.ends SubCir34
+
+.subckt SubCir35 in out
+D1 mid in DefualtDiode
+R1 mid out 70.0539kOhm
+.ends SubCir35
+
+.subckt SubCir36 in out
+D1 mid out DefualtDiode
+R1 in mid 27.5021kOhm
+.ends SubCir36
+
+.subckt SubCir37 in out
+D1 mid in DefualtDiode
+R1 mid out 47.8866kOhm
+.ends SubCir37
+
+.subckt SubCir38 in out
+D1 mid in DefualtDiode
+R1 mid out 38.3349kOhm
+.ends SubCir38
+
+.subckt SubCir39 in out
+D1 mid in DefualtDiode
+R1 mid out 58.275kOhm
+.ends SubCir39
+
+.subckt SubCir40 in out
+D1 mid in DefualtDiode
+R1 mid out 97.9324kOhm
+.ends SubCir40
+
+.subckt SubCir41 in out
+D1 mid in DefualtDiode
+R1 mid out 20.1743kOhm
+.ends SubCir41
+
+.subckt SubCir42 in out
+D1 mid in DefualtDiode
+R1 mid out 34.6311kOhm
+.ends SubCir42
+
+.subckt SubCir43 in out
+D1 mid out DefualtDiode
+R1 in mid 48.2319kOhm
+.ends SubCir43
+
+.subckt SubCir44 in out
+D1 mid in DefualtDiode
+R1 mid out 41.7009kOhm
+.ends SubCir44
+
+.subckt SubCir45 in out
+D1 mid out DefualtDiode
+R1 in mid 73.6061kOhm
+.ends SubCir45
+Rin1_contact in1_conn n1 200Ohm
+Rin2_contact in2_conn n2 200Ohm
+Rin3_contact in3_conn n3 200Ohm
+Rin4_contact in4_conn n4 200Ohm
+Rin5_contact in5_conn n5 200Ohm
+Rin6_contact in6_conn n6 200Ohm
+Rop1_contact op1_conn n10 0Ohm
+Rop2_contact op2_conn n9 0Ohm
+Rop3_contact op3_conn n8 0Ohm
+Rop4_contact op4_conn n7 0Ohm
+Rop1_shunt n10 0 70kOhm
+Rop2_shunt n9 0 70kOhm
+Rop3_shunt n8 0 70kOhm
+Rop4_shunt n7 0 70kOhm
+X1 n1 n2 SubCir1
+X2 n1 n3 SubCir2
+X3 n1 n4 SubCir3
+X4 n1 n5 SubCir4
+X5 n1 n6 SubCir5
+X6 n1 n7 SubCir6
+X7 n1 n8 SubCir7
+X8 n1 n9 SubCir8
+X9 n1 n10 SubCir9
+X10 n2 n3 SubCir10
+X11 n2 n4 SubCir11
+X12 n2 n5 SubCir12
+X13 n2 n6 SubCir13
+X14 n2 n7 SubCir14
+X15 n2 n8 SubCir15
+X16 n2 n9 SubCir16
+X17 n2 n10 SubCir17
+X18 n3 n4 SubCir18
+X19 n3 n5 SubCir19
+X20 n3 n6 SubCir20
+X21 n3 n7 SubCir21
+X22 n3 n8 SubCir22
+X23 n3 n9 SubCir23
+X24 n3 n10 SubCir24
+X25 n4 n5 SubCir25
+X26 n4 n6 SubCir26
+X27 n4 n7 SubCir27
+X28 n4 n8 SubCir28
+X29 n4 n9 SubCir29
+X30 n4 n10 SubCir30
+X31 n5 n6 SubCir31
+X32 n5 n7 SubCir32
+X33 n5 n8 SubCir33
+X34 n5 n9 SubCir34
+X35 n5 n10 SubCir35
+X36 n6 n7 SubCir36
+X37 n6 n8 SubCir37
+X38 n6 n9 SubCir38
+X39 n6 n10 SubCir39
+X40 n7 n8 SubCir40
+X41 n7 n9 SubCir41
+X42 n7 n10 SubCir42
+X43 n8 n9 SubCir43
+X44 n8 n10 SubCir44
+X45 n9 n10 SubCir45
+.model DefualtDiode D (BV=30V IBV=0.0001V IS=4.352nA N=1.906 RS=0.6458Ohm)

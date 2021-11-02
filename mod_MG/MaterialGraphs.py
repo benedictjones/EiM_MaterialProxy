@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import h5py
 import os
+import copy
 
 import multiprocessing
 
@@ -13,7 +14,6 @@ import time
 
 # My imports
 from mod_settings.Set_Load import LoadSettings
-from mod_load.LoadData import Load_Data
 from mod_methods.FetchPerm import IndexPerm, NPerms
 
 from mod_material.eim_processor import material_processor
@@ -34,58 +34,59 @@ class materialgraphs(object):
     ''' # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     Initialisation of class
     '''
-    def __init__(self, cir, rep, GenMG_animation=0, param_file=''):
+    def __init__(self, syst, rep, lobj, prm, GenMG_animation=0):
 
         # # Assign setting to self from setting dict file
-        self.CompiledDict = LoadSettings(param_file)
-        self.ParamDict = self.CompiledDict['DE']
-        self.NetworkDict = self.CompiledDict['network']
-        self.GenomeDict = self.CompiledDict['genome']
+        self.prm = copy.deepcopy(prm)
+        self.ParamDict = self.prm['DE']
+        self.NetworkDict = self.prm['network']
+        self.GenomeDict = self.prm['genome']
 
-        self.num_processors = self.CompiledDict['num_processors']
-        self.save_dir = self.CompiledDict['SaveDir']
+        self.num_processors = self.prm['num_processors']
+        self.save_dir = self.prm['SaveDir']
         self.num_nodes = self.NetworkDict['num_input'] + self.NetworkDict['num_config'] + self.NetworkDict['num_output']
         self.UseCustom_NewAttributeData = self.ParamDict['UseCustom_NewAttributeData']
 
-        self.cir = cir
+        self.lobj = lobj
+
+        self.syst = syst
         self.rep = rep
-        #print("MG plots on: cir", cir, "rep", rep)
+        #print("MG plots on: syst", syst, "rep", rep)
 
         # change if making an animation
         if GenMG_animation == 1:
             self.GenMG_animation = 1
-            interval = 0.2  # set a larger interval is gening a gif
+            interval = 0.1  # set a larger interval is gening a gif
         else:
             self.GenMG_animation = 0
-            interval = 0.1
 
-        the_max = self.CompiledDict['spice']['Vmax']+1
-        the_min = self.CompiledDict['spice']['Vmin']-1
+
+        diff = self.prm['spice']['Vmax'] - self.prm['spice']['Vmin']
+        the_max = self.prm['spice']['Vmax'] + (0.1*diff)
+        the_min = self.prm['spice']['Vmin'] - (0.1*diff)
+        interval = (the_max-the_min)*0.01
         max = the_max+interval
         self.x1 = np.arange(the_min, max, interval)
         self.x2 = np.arange(the_min, max, interval)
 
         # # for a fast graphs use in DefualtGenome Plot:
-        interval = 0.2
+        #interval = 0.2
+        interval = (the_max-the_min)*0.02
         max = the_max+interval
         self.x1_fast = np.arange(the_min, max, interval)
         self.x2_fast = np.arange(the_min, max, interval)
 
-        interval = 0.2
+        #interval = 0.2
+        interval = (the_max-the_min)*0.01
         max = the_max+interval
         self.x1_sweep = np.arange(the_min, max, interval)
         self.x2_sweep = np.arange(the_min, max, interval)
 
-        # Load the training data
-        train_data_X, train_data_Y = Load_Data('train', self.CompiledDict)  # self.ParamDict['TestVerify'] st to 0, so all points plotted on MG
-        self.training_data = train_data_X
-        self.training_data_classes = train_data_Y
-
         # # Assign setting s to self
         #self.num_processors = self.num_processors
         self.num_processors = multiprocessing.cpu_count()  # set to the max for MG graphs
-        if self.num_processors >= 10:
-            self.num_processors = 10
+        if self.num_processors >= 11:
+            self.num_processors = 11
 
         # Define the cmap
         #basic_cols = ['#0000ff', '#5800ff', '#000000', '#ff5800', '#ff0000']  # red/blue
@@ -108,10 +109,10 @@ class materialgraphs(object):
             self.min_colour_val = -1
 
         # compute number of output weights that would be needed
-        if self.CompiledDict['DE']['num_readout_nodes'] != 'na':
-            self.num_output_weights = self.CompiledDict['network']['num_output']*self.CompiledDict['DE']['num_readout_nodes']
+        if self.prm['DE']['num_readout_nodes'] != 'na':
+            self.num_output_weights = self.prm['network']['num_output']*self.prm['DE']['num_readout_nodes']
         else:
-            self.num_output_weights = self.CompiledDict['network']['num_output']
+            self.num_output_weights = self.prm['network']['num_output']
 
         return
 
@@ -122,21 +123,33 @@ class materialgraphs(object):
     #
 
     def clean_genome(self, Dict):
+        """
+        Takes in the paramater dict file, and clears all active genes
+        (i.e. decision paramaters) by setting them to not active.
 
-        Dict['genome']['shuffle_gene'] = 0
-        Dict['genome']['InWeight_gene'] = 0
-        Dict['genome']['OutWeight_gene'] = 0
+        Note: All except config genes.
+        """
 
-        Dict['genome']['PulseWidth_gene'] = 0
 
-        Dict['genome']['BandNumber_gene'] = 0
-        Dict['genome']['BandEdge_gene'] = 0
-        Dict['genome']['BandWidth_gene'] = 0
-        Dict['genome']['BandClass_gene'] = 0
+        Dict['genome']['Config']['active'] = 1
+        Dict['genome']['Shuffle']['active'] = 0
 
-        Dict['genome']['HOWperm_gene'] = 0
+        Dict['genome']['InWeight']['active'] = 0
+        Dict['genome']['InBias']['active'] = 0
 
-        Dict['genome']['NN_weight_loc'] = 'na'
+        Dict['genome']['OutWeight']['active'] = 0
+        Dict['genome']['OutBias']['active'] = 0
+
+        Dict['genome']['PulseWidth']['active'] = 0
+
+        Dict['genome']['BandNumber']['active'] = 0
+        Dict['genome']['BandClass']['active'] = 0
+        Dict['genome']['BandEdge']['active'] = 0
+        Dict['genome']['BandWidth']['active'] = 0
+
+        Dict['genome']['HOWperm']['active'] = 0
+
+        # Dict['genome']['NN_weight_loc']['active'] = 'na'
 
         return Dict
 
@@ -146,10 +159,16 @@ class materialgraphs(object):
 
     #
 
-    ''' # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    Run the multiprocessing fobj function
-    '''
     def Find_Class(self, pop_denorm_in, x1_data, x2_data, bound_dict):
+        """
+        Calc the Responce and output voltages for a passed in pop!
+            - Takes in the (denomralised) population, and performs a 2d surface sweep
+        for two attributes.
+            - This is processed, then reformatted so we have a list of output
+        responce (Y) matries for each of the passed in pop members.
+
+        """
+
 
         # # Divide the population in n chunks, where n = num_processors
         genome_list = np.asarray(pop_denorm_in)
@@ -172,9 +191,15 @@ class materialgraphs(object):
         bound_dict['len_x2'] = len(x2_data)
         bound_dict['num_processors'] = self.num_processors
 
+        duplicate_RL_list = []
+        for i in range(len(genome_list)):
+            duplicate_RL_list.append(self.best_RidgeLayer)
+
         cap = material_processor(bound_dict)
-        cap.gen_material(self.cir, load_only=1)  # load material
-        results = cap.run_processor(genome_list, self.cir, self.rep, x_in, the_data='mg', ret_str='unzip')
+        cap.gen_material(self.syst)  # load material
+        results = cap.run_processors(genome_list, self.syst, self.rep, x_in,
+                                     ridge_layer_list=duplicate_RL_list, the_data='mg', ret_str='unzip')
+        #class_Glist_unshaped = results[0]
         responceY_Glist_unshaped = results[1]
         Vop_Glist_unshaped = results[2]
 
@@ -220,7 +245,7 @@ class materialgraphs(object):
     ''' # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     Material Graphs main function
     '''
-    def MG(self, plot_defualt, last_res, it='na'):
+    def MG(self, last_res, obj_RidgeLayer='na', it='na', ani_label='Train'):
 
         if self.GenMG_animation == 1:
             print("\nGetting material graph data for animation...")
@@ -231,13 +256,13 @@ class materialgraphs(object):
         tic = time.time()
 
         # retrieve the best results
-        best_genome = last_res[0]
-        best_fitness_val = last_res[1]
-        self.best_genome = best_genome
+        best_genome, bTrain_Fit, Gbest_Fit, TestFit = last_res
 
+        # Save the passed in ridged layer as the defualt object ridge layer
+        self.best_RidgeLayer = obj_RidgeLayer
 
         # find the bounds matrix representing the class and proximity to the class boundary
-        custom_Dict = self.CompiledDict
+        custom_Dict = self.prm
 
         x1_data = self.x1
         x2_data = self.x2
@@ -252,32 +277,23 @@ class materialgraphs(object):
 
         # # Save data and return if only saving animation data
         if self.GenMG_animation == 1:
+            ani_file_dir = "%s/data_ani.hdf5" % (self.save_dir)
+            with h5py.File(ani_file_dir, 'a') as hdf:
+                dataset_name = "%d_rep%d/%s/MG_dat_it_%d" % (self.syst, self.rep, ani_label, it)
+                Y_dat = hdf.create_dataset(dataset_name, data=bounds_matrix)
+                Y_dat.attrs['best_fit'] = bTrain_Fit
+                Y_dat.attrs['best_genome'] = str(best_genome)
 
-            ani_file = "%s/MG_AniData" % (self.save_dir)
-            ani_file_dir = "%s/%d_Rep%d.hdf5" % (ani_file, self.cir, self.rep)
-            if it == 0:
-                # if the new folder does not yet exist, create it
-                if not os.path.exists(ani_file):
-                    os.makedirs(ani_file)
-                with h5py.File(ani_file_dir, 'a') as hdf:
-                    dataset_name = 'MG_dat_it_%d' % (it)
-                    Y_dat = hdf.create_dataset(dataset_name, data=bounds_matrix)
-                    Y_dat.attrs['best_fit'] = best_fitness_val
-                    Y_dat.attrs['best_genome'] = str(best_genome)
+                if it == 0 and self.syst == 0 and self.rep == 0:
                     dataset_extent = [self.x1.min(),self.x1.max(),self.x2.min(), self.x2.max()]
                     hdf.create_dataset('extent', data=dataset_extent)
-            else:
-                with h5py.File(ani_file_dir, 'a') as hdf:
-                    dataset_name = 'MG_dat_it_%d' % (it)
-                    Y_dat = hdf.create_dataset(dataset_name, data=bounds_matrix)
-                    Y_dat.attrs['best_fit'] = best_fitness_val
-                    Y_dat.attrs['best_genome'] = str(best_genome)
+                    hdf.create_dataset('num_batches', data=self.lobj.num_batches)
             return
 
         # # write data to MG group, best gen sub group
         location = "%s/data.hdf5" % (self.save_dir)
         with h5py.File(location, 'a') as hdf:
-            G_sub = hdf.create_group("%d_rep%d/MG/BestGenome" % (self.cir, self.rep))
+            G_sub = hdf.create_group("%d_rep%d/MG/BestGenome" % (self.syst, self.rep))
 
 
             G_sub.create_dataset('responceY', data=bounds_matrix)  # write BW
@@ -291,7 +307,14 @@ class materialgraphs(object):
             G_sub.create_dataset('the_best_genome', data=np.float64(np.concatenate(best_genome)))  # write extent
             G_sub.create_dataset('gen_grouping', data=self.GenomeDict['grouping'])
 
-            G_sub.create_dataset('best_fitness_val', data=best_fitness_val)
+            G_sub.create_dataset('bTrain_Fit', data=bTrain_Fit)
+            Gbest = G_sub.create_dataset('Gbest_Fit', data=Gbest_Fit)
+            if self.prm['DE']['batch_size'] == 0:
+                Gbest.attrs['type'] = 'bTrain'
+            else:
+                Gbest.attrs['type'] = 'bVali'
+
+            G_sub.create_dataset('TestFit', data=TestFit)
             G_sub.create_dataset('op_list', data=np.asarray(op_list_Glist[0]))
 
         # # #
@@ -307,21 +330,22 @@ class materialgraphs(object):
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         # Print the unconfigured material and it's material effect
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-        if plot_defualt == 1:
+        if self.prm['mg']['plot_defualt'] == 1:
+
             print("\nMG Default genome")
 
             # # # # # # # # # # # #
             # Create the "Defualt Geneome"
             defualt_genome = []
 
-            custom_Dict = self.CompiledDict
+            custom_Dict = self.prm
             custom_Dict = self.clean_genome(custom_Dict)
 
             temp = []
             for i in range(self.NetworkDict['num_config']):
                 temp.append(0)
             defualt_genome.append(np.asarray(temp))
-            custom_Dict['genome']['config_gene_loc'] = 0
+            custom_Dict['genome']['Config']['loc'] = 0
 
             # # # # # # # # # # # # # # #
             # find the bounds matrix representing the class and proximity to the class boundary
@@ -331,10 +355,12 @@ class materialgraphs(object):
             bounds_matrix_list, op_list_Glist = self.Find_Class(np.asarray([defualt_genome]), x1_data, x2_data, custom_Dict)
             bounds_matrix_defa = bounds_matrix_list[0]
 
+            self.default_max_Y = np.max(np.abs(bounds_matrix_defa))
+
             # # write data to MG group, defualt gen sub group
             location = "%s/data.hdf5" % (self.save_dir)
             with h5py.File(location, 'a') as hdf:
-                G_sub = hdf.create_group("%d_rep%d/MG/DefaultGenome" % (self.cir, self.rep))
+                G_sub = hdf.create_group("%d_rep%d/MG/DefaultGenome" % (self.syst, self.rep))
 
                 G_sub.create_dataset('responceY', data=bounds_matrix_defa)  # write BW
 
@@ -387,7 +413,12 @@ class materialgraphs(object):
     '''
     def MG_VaryConfig(self):
 
-        print("")
+        if self.NetworkDict['num_config'] > 2:
+            return
+
+        if self.prm['mg']['MG_vary_Vconfig'] != 1:
+            return
+
         print("Vary Vconfig for a defualt_genome ...")
         tic = time.time()
 
@@ -408,10 +439,8 @@ class materialgraphs(object):
             fig, ax = plt.subplots(rows, sharex='col')
             cb_ax = fig.add_axes([0.8, 0.1, 0.02, 0.8])
         elif self.NetworkDict['num_config'] == 2:
-            #Vconfig_1 = np.asarray([-6, -3, 0, 3, 6])
-            #Vconfig_2 = np.asarray([6, 3, 0, -3, -6])
-            Vconfig_1 = np.asarray([-5, 0, 5])
-            Vconfig_2 = np.asarray([5, 0, -5])
+            Vconfig_1 = np.asarray([-6, -3, 0, 3, 6])
+            Vconfig_2 = np.asarray([6, 3, 0, -3, -6])
             rows, cols = len(Vconfig_1), len(Vconfig_2)
             fig, ax = plt.subplots(rows, cols,
                                    sharex='col',
@@ -425,9 +454,9 @@ class materialgraphs(object):
 
         # Produce the genome population to be examined
 
-        custom_Dict = self.CompiledDict
+        custom_Dict = self.prm
         custom_Dict = self.clean_genome(custom_Dict)
-        custom_Dict['genome']['config_gene_loc'] = 0
+        custom_Dict['genome']['Config']['loc'] = 0
 
         pop_list = []
         for row in range(rows):
@@ -459,7 +488,7 @@ class materialgraphs(object):
         # # (FIG_defualt_genome_data_Biased)
         location = "%s/data.hdf5" % (self.save_dir)
         with h5py.File(location, 'a') as hdf:
-            G_sub = hdf.create_group("%d_rep%d/MG/VaryConfig" % (self.cir, self.rep))
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryConfig" % (self.syst, self.rep))
 
             rY_list = G_sub.create_dataset('responceY_list', data=responceY_list)  # write BW
             G_sub.create_dataset('op_list_Glist', data=op_list_Glist)  # write BW
@@ -502,8 +531,10 @@ class materialgraphs(object):
     '''
     def MG_VaryPerm(self, OutWeight=0):
 
-        print("")
-        print("Vary Input perm's (shuffle) for a defualt_genome ...")
+        if self.prm['mg']['MG_vary_PermConfig'] != 1:
+            return
+
+        print("\nVary Input perm's (shuffle) for a defualt_genome ...")
         tic = time.time()
 
         x1_PC = self.x1_sweep
@@ -526,11 +557,11 @@ class materialgraphs(object):
         pop_list = []
         OW_list_list = []
 
-        custom_Dict = self.CompiledDict
+        custom_Dict = self.prm
         custom_Dict = self.clean_genome(custom_Dict)
-        custom_Dict['genome']['config_gene_loc'] = 0
-        custom_Dict['genome']['shuffle_gene'] = 1
-        custom_Dict['genome']['SGI'] = 1
+        custom_Dict['genome']['Config']['loc'] = 0
+        custom_Dict['genome']['Shuffle']['active'] = 1
+        custom_Dict['genome']['Shuffle']['loc'] = 1
 
         k = 0
         for row in range(rows):
@@ -563,11 +594,11 @@ class materialgraphs(object):
 
                 # no output weightings
                 if OutWeight == 0:
-                    custom_Dict['genome']['OutWeight_gene'] = 0
+                    custom_Dict['genome']['OutWeight']['active'] = 0
 
                 elif OutWeight == 1:
-                    custom_Dict['genome']['OutWeight_gene'] = 1
-                    custom_Dict['genome']['out_weight_gene_loc'] = 2
+                    custom_Dict['genome']['OutWeight']['active'] = 1
+                    custom_Dict['genome']['OutWeight']['loc'] = 2
                     OW_list = []  # make list to print weights on graph
                     temp = []
                     for j in range(self.num_output_weights):
@@ -581,10 +612,10 @@ class materialgraphs(object):
                             temp.append(1)
                             OW_list.append(1)
                         else:  # random weights for the rest
-                            if self.GenomeDict['OutWeight_scheme'] == 'random':
+                            if self.GenomeDict['OutWeight']['scheme'] == 'random':
                                 OW_list.append(np.around(OW, decimals=2))
                                 temp.append(OW)
-                            elif self.GenomeDict['OutWeight_scheme'] == 'AddSub':
+                            elif self.GenomeDict['OutWeight']['scheme'] == 'AddSub':
                                 if OW >= 0:
                                     OW_list.append(1)
                                     temp.append(1)
@@ -620,7 +651,7 @@ class materialgraphs(object):
         # # (FIG_defualt_genome_data_Biased)
         location = "%s/data.hdf5" % (self.save_dir)
         with h5py.File(location, 'a') as hdf:
-            G_sub = hdf.create_group("%d_rep%d/MG/VaryShuffle" % (self.cir, self.rep))
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryShuffle" % (self.syst, self.rep))
 
             rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
             rY_list.attrs['num_plots'] = len(bounds_matrix_list)
@@ -669,8 +700,10 @@ class materialgraphs(object):
     '''
     def MG_VaryOutWeights(self, assending=0):
 
-        print("")
-        print("Vary Output Weights for a defualt_genome ...")
+        if self.prm['mg']['MG_vary_OutWeight'] != 1:
+            return
+
+        print("\nVary Output Weights for a defualt_genome ...")
         tic = time.time()
 
         # Set Paraeters
@@ -691,7 +724,11 @@ class materialgraphs(object):
                            [1, -1], [0.5, -1], [0, -1], [-0.5, -1],
                            [-1, -1], [-1, -0.5], [-1, 0], [-1, 0.5]]
             rows, cols = 4, 4
+        elif assending == 2:
+            weight_list = [[0.05,0.05], [0.1, 0.1], [0.5, 0.5], [1, 1],
+                           [1.5, 1.5], [2, 2], [5, 5], [20,20]]
 
+            rows, cols = 2, 4
         # Produce the genome population to be examined
         Num_Perms = NPerms(self.NetworkDict['num_input']+self.NetworkDict['num_config'])
         perm_options = np.arange(0, Num_Perms)
@@ -699,11 +736,12 @@ class materialgraphs(object):
         pop_list = []
         OW_list_list = []
         actual_PermArray_list = []
-        custom_Dict = self.CompiledDict
+        custom_Dict = self.prm
         custom_Dict = self.clean_genome(custom_Dict)
-        custom_Dict['genome']['config_gene_loc'] = 0
-        custom_Dict['genome']['OutWeight_gene'] = 1
-        custom_Dict['genome']['out_weight_gene_loc'] = 1
+        custom_Dict['genome']['Config']['loc'] = 0
+        custom_Dict['genome']['OutWeight']['active'] = 1
+        custom_Dict['genome']['OutWeight']['loc'] = 1
+
 
         k = 0
         for row in range(rows):
@@ -745,7 +783,7 @@ class materialgraphs(object):
                         temp.append(-1)
                         temp.append(-1)
                         OW_list_list.append([-1, -1])
-                elif assending == 1:
+                else:
                     weights = weight_list[k]
                     temp.append(weights[0])
                     temp.append(weights[1])
@@ -768,7 +806,7 @@ class materialgraphs(object):
         # # (FIG_defualt_genome_data_Biased)
         location = "%s/data.hdf5" % (self.save_dir)
         with h5py.File(location, 'a') as hdf:
-            G_sub = hdf.create_group("%d_rep%d/MG/VaryOutWeight" % (self.cir, self.rep))
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryOutWeight" % (self.syst, self.rep))
 
             rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
             rY_list.attrs['num_plots'] = len(bounds_matrix_list)
@@ -798,8 +836,10 @@ class materialgraphs(object):
     # #############################################################
     def MG_VaryOutWeightsAni(self):
 
-        print("")
-        print("Vary Output Weights for a defualt_genome animation ...")
+        if self.prm['mg']['MG_VaryOutWeightsAni'] != 1:
+            return
+
+        print("\nVary Output Weights for a defualt_genome animation ...")
         tic = time.time()
 
         # Set Paraeters
@@ -838,11 +878,11 @@ class materialgraphs(object):
         # Produce the genome population to be examined
         pop_list = []
         OW_list_list = []
-        custom_Dict = self.CompiledDict
+        custom_Dict = self.prm
         custom_Dict = self.clean_genome(custom_Dict)
-        custom_Dict['genome']['config_gene_loc'] = 0
-        custom_Dict['genome']['OutWeight_gene'] = 1
-        custom_Dict['genome']['out_weight_gene_loc'] = 1
+        custom_Dict['genome']['Config']['loc'] = 0
+        custom_Dict['genome']['OutWeight']['active'] = 1
+        custom_Dict['genome']['OutWeight']['loc'] = 1
 
         k = 0
         for num in range(len(weight_list[0,:])):
@@ -877,7 +917,7 @@ class materialgraphs(object):
         # # write data to MG group
         location = "%s/data.hdf5" % (self.save_dir)
         with h5py.File(location, 'a') as hdf:
-            G_sub = hdf.create_group("%d_rep%d/MG/VaryOutWeightAni" % (self.cir, self.rep))
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryOutWeightAni" % (self.syst, self.rep))
 
             rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
             rY_list.attrs['num_plots'] = len(bounds_matrix_list)
@@ -905,8 +945,10 @@ class materialgraphs(object):
     # #############################################################
     def MG_VaryLargeOutWeightsAni(self):
 
-        print("")
-        print("Vary LARGE Output Weights for a defualt_genome animation ...")
+        if self.prm['mg']['MG_VaryLargeOutWeightsAni'] != 1:
+            return
+
+        print("\nVary LARGE Output Weights for a defualt_genome animation ...")
         tic = time.time()
 
         # Set Paraeters
@@ -945,11 +987,11 @@ class materialgraphs(object):
         # Produce the genome population to be examined
         pop_list = []
         OW_list_list = []
-        custom_Dict = self.CompiledDict
+        custom_Dict = self.prm
         custom_Dict = self.clean_genome(custom_Dict)
-        custom_Dict['genome']['config_gene_loc'] = 0
-        custom_Dict['genome']['OutWeight_gene'] = 1
-        custom_Dict['genome']['out_weight_gene_loc'] = 1
+        custom_Dict['genome']['Config']['loc'] = 0
+        custom_Dict['genome']['OutWeight']['active'] = 1
+        custom_Dict['genome']['OutWeight']['loc'] = 1
 
         k = 0
         for num in range(len(weight_list[0,:])):
@@ -983,7 +1025,7 @@ class materialgraphs(object):
         # # write data to MG group
         location = "%s/data.hdf5" % (self.save_dir)
         with h5py.File(location, 'a') as hdf:
-            G_sub = hdf.create_group("%d_rep%d/MG/VaryLargeOutWeightAni" % (self.cir, self.rep))
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryLargeOutWeightAni" % (self.syst, self.rep))
 
             rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
             rY_list.attrs['num_plots'] = len(bounds_matrix_list)
@@ -1028,8 +1070,10 @@ class materialgraphs(object):
     '''
     def MG_VaryInWeights(self, assending=0):
 
-        print("")
-        print("Vary Input Weights for a defualt_genome ...")
+        if self.prm['mg']['MG_vary_InWeight'] != 1:
+            return
+
+        print("\nVary Input Weights for a defualt_genome ...")
         tic = time.time()
 
         # Set Paraeters
@@ -1050,6 +1094,11 @@ class materialgraphs(object):
                            [1, -1], [0.5, -1], [0, -1], [-0.5, -1],
                            [-1, -1], [-1, -0.5], [-1, 0], [-1, 0.5]]
             rows, cols = 4, 4
+        elif assending == 2:
+            weight_list = [[0.05,0.05], [0.1, 0.1], [0.5, 0.5], [1, 1],
+                           [1.5, 1.5], [2, 2], [5, 5], [20,20]]
+
+            rows, cols = 2, 4
 
         # Produce the genome population to be examined
         Num_Perms = NPerms(self.NetworkDict['num_input']+self.NetworkDict['num_config'])
@@ -1058,11 +1107,11 @@ class materialgraphs(object):
         pop_list = []
         OW_list_list = []
         actual_PermArray_list = []
-        custom_Dict = self.CompiledDict
+        custom_Dict = self.prm
         custom_Dict = self.clean_genome(custom_Dict)
-        custom_Dict['genome']['config_gene_loc'] = 0
-        custom_Dict['genome']['InWeight_gene'] = 1
-        custom_Dict['genome']['in_weight_gene_loc'] = 1
+        custom_Dict['genome']['Config']['loc'] = 0
+        custom_Dict['genome']['InWeight']['active'] = 1
+        custom_Dict['genome']['InWeight']['loc'] = 1
 
         k = 0
         for row in range(rows):
@@ -1103,7 +1152,7 @@ class materialgraphs(object):
                         temp.append(-1)
                         temp.append(-1)
                         OW_list_list.append([-1, -1])
-                elif assending == 1:
+                else:
                     weights = weight_list[k]
                     temp.append(weights[0])
                     temp.append(weights[1])
@@ -1133,7 +1182,7 @@ class materialgraphs(object):
         # # (FIG_defualt_genome_data_Biased)
         location = "%s/data.hdf5" % (self.save_dir)
         with h5py.File(location, 'a') as hdf:
-            G_sub = hdf.create_group("%d_rep%d/MG/VaryInWeight" % (self.cir, self.rep))
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryInWeight" % (self.syst, self.rep))
 
             rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
             rY_list.attrs['num_plots'] = len(bounds_matrix_list)
@@ -1162,8 +1211,10 @@ class materialgraphs(object):
     # #############################################################
     def MG_VaryInWeightsAni(self):
 
-        print("")
-        print("Vary Input Weights for a defualt_genome animation ...")
+        if self.prm['mg']['MG_VaryInWeightsAni'] != 1:
+            return
+
+        print("\nVary Input Weights for a defualt_genome animation ...")
         tic = time.time()
 
         # Set Paraeters
@@ -1198,11 +1249,11 @@ class materialgraphs(object):
         # Produce the genome population to be examined
         pop_list = []
         OW_list_list = []
-        custom_Dict = self.CompiledDict
+        custom_Dict = self.prm
         custom_Dict = self.clean_genome(custom_Dict)
-        custom_Dict['genome']['config_gene_loc'] = 0
-        custom_Dict['genome']['InWeight_gene'] = 1
-        custom_Dict['genome']['in_weight_gene_loc'] = 1
+        custom_Dict['genome']['Config']['loc'] = 0
+        custom_Dict['genome']['InWeight']['active'] = 1
+        custom_Dict['genome']['InWeight']['loc'] = 1
 
         k = 0
         for num in range(len(weight_list[0,:])):
@@ -1236,7 +1287,7 @@ class materialgraphs(object):
         # # write data to MG group
         location = "%s/data.hdf5" % (self.save_dir)
         with h5py.File(location, 'a') as hdf:
-            G_sub = hdf.create_group("%d_rep%d/MG/VaryInWeightAni" % (self.cir, self.rep))
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryInWeightAni" % (self.syst, self.rep))
 
             rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
             rY_list.attrs['num_plots'] = len(bounds_matrix_list)
@@ -1263,8 +1314,10 @@ class materialgraphs(object):
     # #############################################################
     def MG_VaryLargeInWeightsAni(self):
 
-        print("")
-        print("Vary Large Input Weights for a defualt_genome animation ...")
+        if self.prm['mg']['MG_VaryLargeInWeightsAni'] != 1:
+            return
+
+        print("\nVary Large Input Weights for a defualt_genome animation ...")
         tic = time.time()
 
         # Set Paraeters
@@ -1299,11 +1352,11 @@ class materialgraphs(object):
         # Produce the genome population to be examined
         pop_list = []
         OW_list_list = []
-        custom_Dict = self.CompiledDict
+        custom_Dict = self.prm
         custom_Dict = self.clean_genome(custom_Dict)
-        custom_Dict['genome']['config_gene_loc'] = 0
-        custom_Dict['genome']['InWeight_gene'] = 1
-        custom_Dict['genome']['in_weight_gene_loc'] = 1
+        custom_Dict['genome']['Config']['loc'] = 0
+        custom_Dict['genome']['InWeight']['active'] = 1
+        custom_Dict['genome']['InWeight']['loc'] = 1
 
         k = 0
         for num in range(len(weight_list[0,:])):
@@ -1337,7 +1390,7 @@ class materialgraphs(object):
         # # write data to MG group
         location = "%s/data.hdf5" % (self.save_dir)
         with h5py.File(location, 'a') as hdf:
-            G_sub = hdf.create_group("%d_rep%d/MG/VaryLargeInWeightAni" % (self.cir, self.rep))
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryLargeInWeightAni" % (self.syst, self.rep))
 
             rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
             rY_list.attrs['num_plots'] = len(bounds_matrix_list)
@@ -1383,8 +1436,13 @@ class materialgraphs(object):
     '''
     def MG_VaryConfig3(self):
 
-        print("")
-        print("Vary Vconfig 3 for a defualt_genome ...")
+        if self.prm['mg']['MG_vary_Vconfig'] != 1:
+            return
+
+        if self.NetworkDict['num_config'] != 3:
+            return
+
+        print("\nVary Vconfig 3 for a defualt_genome ...")
         tic = time.time()
 
         x1_VC = self.x1_sweep
@@ -1408,9 +1466,9 @@ class materialgraphs(object):
 
 
             # Produce the genome population to be examined
-            custom_Dict = self.CompiledDict
+            custom_Dict = self.prm
             custom_Dict = self.clean_genome(custom_Dict)
-            custom_Dict['genome']['config_gene_loc'] = 0
+            custom_Dict['genome']['Config']['loc'] = 0
 
             pop_list = []
             for row in range(rows):
@@ -1475,7 +1533,7 @@ class materialgraphs(object):
 
 
             # # Save figure
-            fig3_path = "%s/%d_Rep%d_FIG_DefualtGenomeBiased___Vconfig3_%d.png" % (self.save_dir, self.cir, self.rep, Vconfig_3)
+            fig3_path = "%s/%d_Rep%d_FIG_DefualtGenomeBiased___Vconfig3_%d.png" % (self.save_dir, self.syst, self.rep, Vconfig_3)
             fig.savefig(fig3_path, dpi=self.dpi)
 
             # Close Fig
@@ -1490,7 +1548,7 @@ class materialgraphs(object):
 
         # # write data to MG group, vary config sub group
         # # (FIG_defualt_genome_data_Biased)
-        location = "%s/data_%d_rep%d.hdf5" % (self.save_dir, self.cir, self.rep)
+        location = "%s/data_%d_rep%d.hdf5" % (self.save_dir, self.syst, self.rep)
         with h5py.File(location, 'a') as hdf:
             G_sub = hdf.create_group('/MG/VaryConfig')
 
@@ -1511,8 +1569,197 @@ class materialgraphs(object):
         toc = time.time()
         print("Vary Vconfig 3 Finished, execution time:", toc - tic)
         plt.close('all')
+
     #
 
-#
+    #
+
+    #
+
+    #
+
+    def MG_VaryInBias(self):
+
+        if self.prm['mg']['MG_vary_InBias'] != 1:
+            return
+
+        print("\nVary Input Biases for a defualt_genome ...")
+        tic = time.time()
+
+        # Set Paraeters
+        if self.NetworkDict['num_input'] != 2:
+            print("MG_VaryInBias currently only works for 2 weighting inputs")
+            print("Aborting")
+            return
+
+        x1 = self.x1_sweep
+        x2 = self.x2_sweep
+
+        # create agrid of sub plots
+        #b1_list = [-2, -1, 0, 1, 2]
+        #b2_list = [2, 1, 0, -1, -2]
+        b1_list = [-6, -3, 0, 3, 6]
+        b2_list = [6, 3, 0, -3, -6]
+        bias_list = []
+        for b2 in b2_list:
+            for b1 in b1_list:
+                bias_list.append([b1, b2])
+
+        rows, cols = 5, 5
+
+        # Produce the genome population to be examined
+        pop_list = []
+        bias_list_list = []
+        custom_Dict = self.prm
+        custom_Dict = self.clean_genome(custom_Dict)
+        custom_Dict['genome']['Config']['loc'] = 0
+        custom_Dict['genome']['InBias']['active'] = 1
+        custom_Dict['genome']['InBias']['loc'] = 1
+
+        k = 0
+        for row in range(rows):
+            for col in range(cols):
+
+                # # Create the "Defualt Geneome"
+                defualt_genome = []
+
+                temp = []
+                for i in range(self.NetworkDict['num_config']):
+                    temp.append(0)
+                defualt_genome.append(np.asarray(temp, dtype=object))
+
+                # # Assign no output weightings, or random output weightings
+                temp = []
+                bias = bias_list[k]
+                temp.append(bias[0])
+                temp.append(bias[1])
+                bias_list_list.append(bias)
+                defualt_genome.append(np.asarray(temp, dtype=object))
+
+                pop_list.append(np.asarray(defualt_genome, dtype=object))
+
+                # # iterate k to select the next random perm
+                k = k + 1
+
+        # find the bounds matrix representing the class and proximity to the class boundary
+        pop_array = np.asarray(pop_list)
+        #print(pop_array)
+        bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1, x2, custom_Dict)
+
+
+        # # write data to MG group, vary shuffle sub group
+        # # (FIG_defualt_genome_data_Biased)
+        location = "%s/data.hdf5" % (self.save_dir)
+        with h5py.File(location, 'a') as hdf:
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryInputBias" % (self.syst, self.rep))
+
+            rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
+            rY_list.attrs['num_plots'] = len(bounds_matrix_list)
+
+            G_sub.create_dataset('x1_data', data=x1)  # write xy data
+            G_sub.create_dataset('x2_data', data=x2)  # write xy data
+
+            extent = [x1.min(),x1.max(),x2.min(), x2.max()]
+            G_sub.create_dataset('extent', data=extent)  # write extent
+
+            G_sub.create_dataset('bias_list', data=bias_list_list)
+            G_sub.create_dataset('rows', data=rows)
+            G_sub.create_dataset('cols', data=cols)
+            G_sub.create_dataset('b1_list', data=b1_list)
+            G_sub.create_dataset('b2_list', data=b2_list)
+
+        # # Print execution time
+        toc = time.time()
+        print("Vary Input Bias Finished, execution time:", toc - tic)
+
+    #
+
+    #
+
+    #
+
+    #
+
+    def MG_VaryOutputBias(self):
+
+        if self.prm['mg']['MG_vary_OutputBias'] != 1:
+            return
+
+        print("\nVary output Biases for a defualt_genome ...")
+        tic = time.time()
+
+        # Set Paraeters
+        if self.ParamDict['num_readout_nodes'] != 1:
+            print("MG_VaryOutputBias currently only works for 1 readout node")
+            print("Aborting")
+            return
+
+        x1 = self.x1_sweep
+        x2 = self.x2_sweep
+
+        # create agrid of sub plots
+        bias_list = [-0.01, -0.005, 0, 0.005, 0.01]
+
+        rows, cols = 1, 5
+
+        # Produce the genome population to be examined
+        pop_list = []
+        custom_Dict = self.prm
+        custom_Dict = self.clean_genome(custom_Dict)
+        custom_Dict['genome']['Config']['loc'] = 0
+        custom_Dict['genome']['OutBias']['active'] = 1
+        custom_Dict['genome']['OutBias']['loc'] = 1
+
+
+        k = 0
+        for row in range(rows):
+            for col in range(cols):
+
+                # # Create the "Defualt Geneome"
+                defualt_genome = []
+
+                temp = []
+                for i in range(self.NetworkDict['num_config']):
+                    temp.append(0)
+                defualt_genome.append(np.asarray(temp, dtype=object))
+
+                # # Assign no output weightings, or random output weightings
+                temp = []
+                temp.append(bias_list[k])
+                defualt_genome.append(np.asarray(temp, dtype=object))
+
+                pop_list.append(np.asarray(defualt_genome, dtype=object))
+
+                # # iterate k to select the next random perm
+                k = k + 1
+
+        # find the bounds matrix representing the class and proximity to the class boundary
+        pop_array = np.asarray(pop_list)
+        #print(pop_array)
+        bounds_matrix_list, op_list_Glist = self.Find_Class(pop_array, x1, x2, custom_Dict)
+
+        # # write data to MG group, vary shuffle sub group
+        # # (FIG_defualt_genome_data_Biased)
+        location = "%s/data.hdf5" % (self.save_dir)
+        with h5py.File(location, 'a') as hdf:
+            G_sub = hdf.create_group("%d_rep%d/MG/VaryOutputBias" % (self.syst, self.rep))
+
+            rY_list = G_sub.create_dataset('responceY_list', data=bounds_matrix_list)  # write BW
+            rY_list.attrs['num_plots'] = len(bounds_matrix_list)
+
+            G_sub.create_dataset('x1_data', data=x1)  # write xy data
+            G_sub.create_dataset('x2_data', data=x2)  # write xy data
+
+            extent = [x1.min(),x1.max(),x2.min(), x2.max()]
+            G_sub.create_dataset('extent', data=extent)  # write extent
+
+            G_sub.create_dataset('rows', data=rows)
+            G_sub.create_dataset('cols', data=cols)
+            G_sub.create_dataset('bias_list', data=bias_list)
+
+        # # Print execution time
+        toc = time.time()
+        print("Vary Output Bias Finished, execution time:", toc - tic)
+
 
 # fin

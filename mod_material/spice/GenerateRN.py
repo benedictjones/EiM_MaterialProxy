@@ -13,7 +13,7 @@ import PySpice.Logging.Logging as Logging
 from scipy import stats
 
 # My imports
-from mod_material.spice.SubCir import SeriesRD, SeriesNL, SeriesPOD
+from mod_material.spice.SubCir import *
 #from Module_SPICE.SPICE_setup import *
 
 
@@ -95,7 +95,7 @@ def calc_num_conn(num_node):
 #
 
 
-def generate_random_netork(CompiledDict, cir):
+def generate_random_netork(CompiledDict, syst):
 
     # # # # # # # # # # # #
     # Assign setting to self from setting dict file
@@ -110,21 +110,15 @@ def generate_random_netork(CompiledDict, cir):
     if os.path.exists(dir_path) is not True:
         os.makedirs(dir_path)
 
+    #
 
-
-    node_cont = 1
-
-    # Generate Fulley connected material nodes
+    # Generate fully connected material nodes
     nodes = []
-    for i in range(NetworkDict['num_input']+NetworkDict['num_config']):
-        nodes.append("in%d" % (node_cont))
-        node_cont = node_cont + 1
-    for i in range(NetworkDict['num_output']):
-        nodes.append("op%d" % (i+1))
-
+    for i in range(NetworkDict['num_input']+NetworkDict['num_config']+NetworkDict['num_output']):
+        nodes.append("n%d" % (i+1))
     num_conn = calc_num_conn(len(nodes))
 
-
+    #
 
     # # # # # # # # # # # #
     # Create ressistance array accordign to charactersistic
@@ -143,7 +137,7 @@ def generate_random_netork(CompiledDict, cir):
         nom_a_list, nom_b_list = x_unif[:,0], x_unif[:,1]
 
 
-        # """
+        """
         h1 = sns.jointplot(x=x[:, 0], y=x[:, 1]+0.00001*np.random.rand(len(x[:,0])), kind='kde')  # add noise to avoid error
         h1.set_axis_labels('X1', 'X2', fontsize=16)
         h1.ax_joint.plot(x[:, 0], x[:, 1], ".", color="#800000")
@@ -152,7 +146,7 @@ def generate_random_netork(CompiledDict, cir):
         h1.fig.suptitle('Correlated Normal Distribution')
         h1.fig.subplots_adjust(top=0.9, bottom=0.1, left=0.15, right=0.95)
         h1.plot_marginals(sns.rugplot, color="#800000", height=.15, clip_on=True)
-        h1.savefig("%s/cir%d_NormalDistr.png" % (dir_path, cir))
+        h1.savefig("%s/syst%d_NormalDistr.png" % (dir_path, syst))
 
         # # plot correlated uniform ditribution, created from the
         # # transformed normal distributions
@@ -162,7 +156,7 @@ def generate_random_netork(CompiledDict, cir):
         h2.set_axis_labels('Y1', 'Y2', fontsize=16)
         h2.fig.subplots_adjust(top=0.9, bottom=0.1, left=0.15, right=0.95)
         h2.fig.suptitle('Correlated Uniform Distribution')
-        h2.savefig("%s/cir%d_UniformDistr.png" % (dir_path, cir))
+        h2.savefig("%s/syst%d_UniformDistr.png" % (dir_path, syst))
 
         #"""
 
@@ -221,7 +215,46 @@ def generate_random_netork(CompiledDict, cir):
         b_list = np.around(long_b_list, decimals=2)
         #b_list = np.zeros(len(b_list))
 
-    elif NetworkDict['model'] == 'R_RN' or NetworkDict['model'] == 'D_RN' or NetworkDict['model'] == 'POD_RN':  # non-linear resistor network
+    elif NetworkDict['model'] == 'NSNL_RN':
+
+        cov_matrix = [[1., MaterialDict['corr']],
+                      [MaterialDict['corr'], 1.]]
+
+        # generate correlated normal distributions
+        mvnorm = stats.multivariate_normal([0, 0], cov_matrix, allow_singular=True)
+        x = mvnorm.rvs((num_conn,))
+
+        # convert normal distributions to uniform distributions
+        norm = stats.norm([0],[1])
+        x_unif = norm.cdf(x)
+        nom_ap_list, nom_bp_list = x_unif[:,0], x_unif[:,1]
+
+
+        # scale to the appropriate a & b ranges
+        diff = np.fabs(MaterialDict['material_a_min'] - MaterialDict['material_a_max'])  # absolute val of each el
+        long_ap_list = MaterialDict['material_a_min'] + nom_ap_list * diff  # pop with their real values
+        ap_list = np.around(long_ap_list, decimals=2)
+
+        diff = np.fabs(MaterialDict['material_b_min'] - MaterialDict['material_b_max'])  # absolute val of each el
+        long_bp_list = MaterialDict['material_b_min'] + nom_bp_list * diff  # pop with their real values
+        bp_list = np.around(long_bp_list, decimals=2)
+
+        x2 = mvnorm.rvs((num_conn,))
+        norm2 = stats.norm([0],[1])
+        x_unif2 = norm2.cdf(x2)
+        nom_an_list, nom_bn_list = x_unif2[:,0], x_unif2[:,1]
+
+        # scale to the appropriate a & b ranges
+        diff = np.fabs(MaterialDict['material_a_min'] - MaterialDict['material_a_max'])  # absolute val of each el
+        long_an_list = MaterialDict['material_a_min'] + nom_an_list * diff  # pop with their real values
+        an_list = np.around(long_an_list, decimals=2)
+
+        diff = np.fabs(MaterialDict['material_b_min'] - MaterialDict['material_b_max'])  # absolute val of each el
+        long_bn_list = MaterialDict['material_b_min'] + nom_bn_list * diff  # pop with their real values
+        bn_list = np.around(long_bn_list, decimals=2)
+
+
+    elif NetworkDict['model'] == 'R_RN' or NetworkDict['model'] == 'D_RN' or NetworkDict['model'] == 'POD_RN' or 'TD_RN' in NetworkDict['model'] or 'PWL_RN' in NetworkDict['model']:  # non-linear resistor network
 
         # create array of random numbers [0,1]
         nom_res_array = np.random.rand(num_conn, 1)
@@ -232,7 +265,7 @@ def generate_random_netork(CompiledDict, cir):
         res_array = np.around(long_res_array, decimals=4)
 
         # assign diode direction
-        if NetworkDict['model'] == 'D_RN' or NetworkDict['model'] == 'POD_RN':
+        if 'D' in NetworkDict['model'] or 'PWL' in NetworkDict['model']:
             if MaterialDict['rand_dir'] == 1:
                 # array (lenth size) of random 0 or 1
                 dir_array = np.random.randint(2, size=(num_conn))
@@ -281,8 +314,14 @@ def generate_random_netork(CompiledDict, cir):
     # 1N4148PH (Signal Diode)
     #"""
     circuit.model('DefualtDiode', 'D',
+                  IS=4.352@u_nA, RS=0.6458@u_Ohm, BV=30@u_V, IBV=0.0001@u_V, N=1.906)
+    #"""
+    """
+    circuit.model('DefualtDiode', 'D',
                   IS=4.352@u_nA, RS=0.6458@u_Ohm, BV=110@u_V, IBV=0.0001@u_V, N=1.906)
     #"""
+
+
 
     # 1N4001 (Power Diode)
     """
@@ -290,15 +329,27 @@ def generate_random_netork(CompiledDict, cir):
                   IS=29.5@u_nA, RS=73.5@u_mOhm, BV=60@u_V, IBV=10@u_uV, N=1.96)
     #"""
 
+    # # Include a file - how to get route right? Cant use a folder name with a " - " in it
+    #new_line = ".include mod_material\\spice\\lib\\td.lib"  # img = imaginary_node
+    #circuit.raw_spice += new_line + os.linesep
+
+
     # #################################################
-    # Generate contact resistances
+    # Generate Peripheral (contact) resistances
     # #################################################
 
-    for node in nodes:
-        if node[0] == 'i':
-            circuit.R('%s_contact' % (node), '%s_conn' % (node), node, MaterialDict['contact_Res']@u_Ohm)
-        #elif node[0] == 'o':
-        #    circuit.R('%s_contact' % (node), node, '%s_conn' % (node), MaterialDict['contact_Res']@u_Ohm)
+    # # Generate Input contacts
+    for i in range(NetworkDict['num_input']+NetworkDict['num_config']):
+        circuit.R('in%s_contact' % (i+1), 'in%s_conn' % (i+1), nodes[i], MaterialDict['in_contact_R']@u_Ohm)
+
+    # # Generate Output contacts
+    for i in range(NetworkDict['num_output']):
+        circuit.R('op%s_contact' % (i+1), 'op%s_conn' % (i+1), nodes[-i-1], MaterialDict['op_contact_R']@u_Ohm)
+
+    # # Generate Output shunt resistance
+    if MaterialDict['op_shunt_R'] != 'none':
+        for i in range(NetworkDict['num_output']):
+            circuit.R("op%d_shunt" % (i+1), nodes[-i-1], circuit.gnd, MaterialDict['op_shunt_R']@u_kOhm)
 
     # #################################################
     # Produce network acording to selected network
@@ -323,7 +374,7 @@ def generate_random_netork(CompiledDict, cir):
             node_pairs.append([n1, n2])  # save node pairs in arrays
 
             # non-linear resistor network
-            if 'NL' in NetworkDict['model']:
+            if 'NL' in NetworkDict['model'] and 'NS' not in NetworkDict['model']:
                 a, b = a_list[element_num-1], b_list[element_num-1]
                 a_express = "%.2f%s" % (a, "n")
                 b_express = "%.2f%s" % (b, "n")
@@ -335,6 +386,49 @@ def generate_random_netork(CompiledDict, cir):
                 circuit.X(element_num, sub_name, n1, n2)  # SubCir diode + res element is therefore
 
                 element_num = element_num + 1
+
+            # Non-Symetrical Non-Linear Material
+            elif 'NSNL_RN' in NetworkDict['model']:
+                ap, bp, an, bn = ap_list[element_num-1], bp_list[element_num-1], an_list[element_num-1], bn_list[element_num-1]
+                ap_express = "%.2f%s" % (ap, "n")
+                bp_express = "%.2f%s" % (bp, "n")
+                an_express = "%.2f%s" % (an, "n")
+                bn_express = "%.2f%s" % (bn, "n")
+
+                sub_name = '%s%d' % ('SubCir', element_num)
+                SubCirc_obj = SeriesNSNL(sub_name, ap_express, bp_express,  an_express, bn_express)
+
+                circuit.subcircuit(SubCirc_obj)
+                circuit.X(element_num, sub_name, n1, n2)  # SubCir diode + res element is therefore
+
+                element_num = element_num + 1
+
+            # Tunneling Diode
+            elif 'TD_RN' in NetworkDict['model']:
+                sub_name = '%s%d' % ('SubCir', element_num)
+                temp_R = res_array[element_num-1, 0]
+                dir = dir_array[element_num-1]
+                SubCirc_obj = SeriesTD(sub_name, direction=dir, Res=temp_R)
+
+                circuit.subcircuit(SubCirc_obj)
+                circuit.X(element_num, sub_name, n1, n2)  # SubCir diode + res element is therefore
+
+                element_num = element_num + 1
+
+            # PWL model Material
+            elif 'PWL_RN' in NetworkDict['model']:
+                sub_name = '%s%d' % ('SubCir', element_num)
+                temp_R = res_array[element_num-1, 0]
+                dir = dir_array[element_num-1]
+                SubCirc_obj = SeriesPWL3(sub_name, Rs=temp_R)
+
+                circuit.subcircuit(SubCirc_obj)
+                if dir == 1:
+                    circuit.X(element_num, sub_name, n1, n2)
+                elif dir == 0:
+                    circuit.X(element_num, sub_name, n2, n1)
+                element_num = element_num + 1
+
 
             # random resistor network
             elif NetworkDict['model'] == 'R_RN':
@@ -391,13 +485,8 @@ def generate_random_netork(CompiledDict, cir):
 
 
     # #################################################
-    # ADC Shunt Resistors & extras
+    # ADC Shunt & Parrallel Capacitance
     # #################################################
-    if MaterialDict['shunt_R'] != 'none':
-        for i in range(NetworkDict['num_output']):
-            Out_Node = "op%d" % (i+1)
-            # print("Node out", Out_Node)
-            circuit.R("shunt%d" % (i+1), Out_Node, circuit.gnd, MaterialDict['shunt_R']@u_kOhm)
 
     if MaterialDict['shuntC'] == 1:
         min, max = MaterialDict['ShuntCapLim']
@@ -442,7 +531,7 @@ def generate_random_netork(CompiledDict, cir):
     circuit_top = '%s' % circuit_top
 
 
-    Net_top_path = "%s/Network_Topology_%s_Cir_%s.txt" % (dir_path, str(CompiledDict['param_file']), cir)
+    Net_top_path = "%s/Network_Topology_%s_Syst%s.txt" % (dir_path, str(CompiledDict['param_file']), syst)
     #print("First save:", Net_top_path)
     file1 = open(Net_top_path, "w")
     file1.write(circuit_top)
@@ -457,10 +546,10 @@ def generate_random_netork(CompiledDict, cir):
         text_list = []
         for i in range(len(res_array)):
             if dir_array[i] == 1:
-                text_list.append('R%s%s = %06.3f Kohm,   Node%s--/\/\/----|>--Node%s (i.e direction %d)' % (
+                text_list.append('R%s%s = %06.3f Kohm,   %s--/\/\/----|>--%s (i.e direction %d)' % (
                                  node_pairs[i][0], node_pairs[i][1], res_array[i,0], node_pairs[i][0], node_pairs[i][1], dir_array[i]))
             elif dir_array[i] == 0:
-                text_list.append('R%s%s = %06.3f Kohm,   Node%s--<|----/\/\/--Node%s (i.e direction %d)' % (
+                text_list.append('R%s%s = %06.3f Kohm,   %s--<|----/\/\/--%s (i.e direction %d)' % (
                                  node_pairs[i][0], node_pairs[i][1], res_array[i,0], node_pairs[i][0], node_pairs[i][1], dir_array[i]))
 
         res_diode_list = ''
@@ -473,10 +562,10 @@ def generate_random_netork(CompiledDict, cir):
         text_list = []
         for i in range(len(res_array)):
             if dir_array[i] == 1:
-                text_list.append('R%s%s = %06.3f Kohm,   Node%s--/\/\/----BackToBack_ParallelDiodes--Node%s (i.e direction %d)' % (
+                text_list.append('R%s%s = %06.3f Kohm,   %s--/\/\/----BackToBack_ParallelDiodes--%s (i.e direction %d)' % (
                                  node_pairs[i][0], node_pairs[i][1], res_array[i,0], node_pairs[i][0], node_pairs[i][1], dir_array[i]))
             elif dir_array[i] == 0:
-                text_list.append('R%s%s = %06.3f Kohm,   Node%s--BackToBack_ParallelDiodes----/\/\/--Node%s (i.e direction %d)' % (
+                text_list.append('R%s%s = %06.3f Kohm,   %s--BackToBack_ParallelDiodes----/\/\/--%s (i.e direction %d)' % (
                               node_pairs[i][0], node_pairs[i][1], res_array[i,0], node_pairs[i][0], node_pairs[i][1], dir_array[i]))
 
 
@@ -498,7 +587,7 @@ def generate_random_netork(CompiledDict, cir):
         else:
             text_list.append('Used Random IS vals, with limits: %s [mOhm]' % (str(RS_val_lim)))
 
-    elif 'NL' in NetworkDict['model']:
+    elif 'NL' in NetworkDict['model']  and 'NS' not in NetworkDict['model']:
         text_list = []
         for i in range(len(a_list)):
 
@@ -515,6 +604,24 @@ def generate_random_netork(CompiledDict, cir):
             for list_bit in text_list:
                 res_diode_list = '%s%s \n' % (res_diode_list, list_bit)
 
+    elif 'NSNL_RN' == NetworkDict['model']:
+        text_list = []
+        for i in range(len(ap_list)):
+
+            ap, bp, an, bn = ap_list[i], bp_list[i], an_list[i], bn_list[i]
+            ap_express = "%.2f%s" % (ap, "n")
+            bp_express = "%.2f%s" % (bp, "n")
+            an_express = "%.2f%s" % (an, "n")
+            bn_express = "%.2f%s" % (bn, "n")
+            vdiff = '(v(%s)-v(%s))' % (node_pairs[i][0], node_pairs[i][1])
+            i_express = "if((%s>0)  THEN  (%s*%s**2 + %s*%s)  ELSE  (-%s*%s**2 + %s*%s )" % (vdiff,
+                                                                                             ap_express, vdiff, bp_express, vdiff,
+                                                                                             an_express, vdiff, bn_express, vdiff)
+            text_list.append(i_express)
+
+            res_diode_list = ''
+            for list_bit in text_list:
+                res_diode_list = '%s%s \n' % (res_diode_list, list_bit)
 
     elif NetworkDict['model'] == 'custom_RN':
         text_list = []
@@ -549,11 +656,12 @@ def generate_random_netork(CompiledDict, cir):
                                  cap_pair[0], cap_pair[1], parlcap_array[pcn-1]))
                 pcn = pcn + 1
 
-    text_list.append('\nOutput Shunt Resistance = %.3f kOhm' % (MaterialDict['shunt_R']))
-    text_list.append('Contact Resistance = %.3f Ohm' % (MaterialDict['contact_Res']))
+    text_list.append('\nOutput Shunt Resistance = %.3f kOhm' % (MaterialDict['op_shunt_R']))
+    text_list.append('Input Contact Resistance = %.3f Ohm' % (MaterialDict['in_contact_R']))
+    text_list.append('Output Contact Resistance = %.3f Ohm' % (MaterialDict['op_contact_R']))
 
     # now try and write it
-    circuit_top_path = "%s/MaterialDescription_%s_Cir_%s.txt" % (dir_path, str(CompiledDict['param_file']), cir)
+    circuit_top_path = "%s/MaterialDescription_%s_Syst%s.txt" % (dir_path, str(CompiledDict['param_file']), syst)
     res_diode_list = ''
     for list_bit in text_list:
         res_diode_list = '%s%s \n' % (res_diode_list, list_bit)

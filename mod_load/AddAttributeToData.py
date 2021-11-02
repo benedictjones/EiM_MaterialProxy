@@ -7,7 +7,6 @@ import os
 import matplotlib
 import h5py
 
-from mod_load.LoadData import Load_Data
 from mod_settings.Set_Load import LoadSettings
 
 """
@@ -20,7 +19,7 @@ or closeness to the boundary between classes which was evolved.
 """
 
 
-def AddAttribute(type, responceY, best_fit, cir, rep):
+def AddAttribute(prm, data_type, responceY, best_fit, sys, rep, train_data_X, train_data_Y, add_to_file_name=''):
 
     # type it either 'train', or 'veri'
 
@@ -33,17 +32,9 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
     matplotlib.rc('pdf', fonttype=42)  # embeds the font, so can import to inkscape
     matplotlib .rcParams["figure.autolayout"] = True  # False
 
-    CompiledDict = LoadSettings()
-    ParamDict = CompiledDict['DE']
-    NetworkDict = CompiledDict['network']
+    ParamDict = prm['DE']
+    NetworkDict = prm['network']
 
-    if type == 'train':
-        if ParamDict['TestVerify'] == 0:
-            data_type = 'all'
-        elif ParamDict['TestVerify'] == 1:
-            data_type = 'training'
-    elif type == 'veri':
-        data_type = 'veri'
 
     # # sort the weigts into a list
     if len(responceY.shape) == 2:
@@ -53,10 +44,6 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
             print("Warning: could not generate extra attribure. Responce is the wrong shape: %s" % str(responceY.shape))
             return
 
-
-    # # # # # # # # # # # #
-    # Load the training data
-    train_data_X, train_data_Y = Load_Data(type, CompiledDict)
 
     # format input data
     for i in range(len(train_data_X[0,:])):
@@ -86,16 +73,15 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
 
 
     # make save dir
-    dir = save_loc = "%s/NewData" % CompiledDict['SaveDir']
+    dir = save_loc = "%s/NewData" % prm['SaveDir']
     if not os.path.exists(dir):
         os.makedirs(dir)
 
 
     # # save
-
-    #Old save
-    save_loc = "%s/DataWithWeigthAttribute.h5" % (dir)
-    data_all.to_hdf(save_loc, key="cir%d_rep%d/%s" % (cir, rep, data_type), mode='a')
+    if ParamDict['SaveExtraAttribute'] == 1:
+        save_loc = "%s/DataWithWeigthAttribute.h5" % (dir)
+        data_all.to_hdf(save_loc, key="sys%d_rep%d/%s" % (sys, rep, data_type), mode='a')
 
 
     # # plot if it is toggled on
@@ -109,7 +95,10 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
 
         num_attr = len(train_data_X[0, :])
 
-        # # Plot original data with colour weights
+        # ###################################################
+        # # Plot original data with colour weights # #
+        # ###################################################
+        """
         rows, cols = num_attr-1, num_attr-1
         fig, ax = plt.subplots(rows, cols, sharex='col', sharey='row', squeeze=False)
 
@@ -133,7 +122,7 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
                     current_x = data_all.loc[k, x_att]
                     current_y = data_all.loc[k, y_att]
 
-                    if ParamDict['IntpScheme'] != 'band' and ParamDict['IntpScheme'] != 'HOW' and ParamDict['IntpScheme'] != 'clustering':
+                    if ParamDict['IntpScheme'] != 'band' and ParamDict['IntpScheme'] != 'HOW' and ParamDict['IntpScheme'] != 'clustering' and ParamDict['IntpScheme'] != 'RidgeHOW':
                         if current_BW >= colr_scale_lims:
                             colr = (1, 0, 0)
                         elif current_BW <= -colr_scale_lims:
@@ -151,6 +140,9 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
                             colr = (0, 0, 1)
                         elif current_BW == 3:
                             colr = (0, 1, 0)
+                        else:
+                            print("\n>>Intp Scheme: ", ParamDict['IntpScheme'])
+                            print(">> current_BW = ", current_BW, "\n")
 
 
                     if current_class == 2:
@@ -181,10 +173,12 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
         fig.subplots_adjust(hspace=0.1, wspace=0.1)
         #fig.set_size_inches(15,10)
         fig.set_size_inches(6.4, 4.8)
-        the_ti = 'Predictive attributs, output represented as a colour (r/b >= +/-%f)\n Fitness: %.3f' % (colr_scale_lims, best_fit)
+        the_ti = 'Predictive attributs, output represented as a colour (r/b >= +/-%f)\n(%s data) Fitness: %.3f' % (colr_scale_lims, data_type, best_fit)
         fig.suptitle(the_ti)
-        fig1_path = "%s/%d_Rep%d_%s_DataWithWeigthAttribute.png" % (dir, cir, rep, type)
-        fig.savefig(fig1_path, dpi=300)
+        fig1_path = "%s/%d_Rep%d_%s_DataWithWeigthAttribute%s.png" % (dir, sys, rep, data_type, add_to_file_name)
+        fig.savefig(fig1_path, dpi=150)
+
+        # """
 
         #
 
@@ -194,8 +188,9 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
 
         #
 
-        # # # ## # # # ## ## # #
-        # # Plot original data with weights as an extra attribute
+        # # #########################################################
+        # # Plot original data with weights as an extra attribute # #
+        # ###########################################################
         rows, cols = num_attr, num_attr
         fig, ax = plt.subplots(rows, cols, sharex='col', sharey='row')
 
@@ -252,10 +247,10 @@ def AddAttribute(type, responceY, best_fit, cir, rep):
         fig.subplots_adjust(hspace=0.1, wspace=0.1)
         #fig.set_size_inches(15,10)
         fig.set_size_inches(6.4, 4.8)
-        the_ti = 'Original Data plotted with generated output\nFitness: %.3f' % (best_fit)
+        the_ti = 'Original Data plotted with generated output\n(%s data) Fitness: %.3f' % (data_type, best_fit)
         fig.suptitle(the_ti)
-        fig1_path = "%s/%d_Rep%d_%s_DataWithWeigthAttribute_alt.png" % (dir, cir, rep, type)
-        fig.savefig(fig1_path, dpi=300)
+        fig1_path = "%s/%d_Rep%d_%s_DataWithWeigthAttribute_alt%s.png" % (dir, sys, rep, data_type, add_to_file_name)
+        fig.savefig(fig1_path, dpi=150)
 
     #
 

@@ -9,7 +9,7 @@ import gc
 import os
 import sys
 
-from sklearn.decomposition import PCA
+
 from sklearn import preprocessing
 
 import sklearn.cluster as cl
@@ -17,12 +17,13 @@ import sklearn.metrics as met
 
 from mod_MG.MaterialGraphs import materialgraphs
 from mod_analysis.Analysis import analysis
+from mod_analysis.EiMplotters import *
+from mod_analysis.plt_rc import rc_plotter
 
-from mod_load.LoadData import Load_Data
+from mod_material.eim_processor import material_processor
 
-from mod_settings.GenParam import GenSimParam
+from mod_settings.GenParam import GenSimParam, LoadPrm
 from mod_settings.Set_Change import ChangeSettings
-from mod_settings.SaveParamToText import save_param
 
 from mod_load.NewWeightedData_CreateTemp import Load_NewWeighted_SaveTemp
 
@@ -74,163 +75,256 @@ The reverse is true for no correlation.
 ######################################################
 
 
-def RunEiM(param_file='',
-           experiment=0, experiment_file='bin/', experiment_loop=0, exp_name='test',
-           **kwargs):
-
-    # # Collect time and dat stamp of experiment # #
-    now = datetime.now()
-    d_string = now.strftime("%Y_%m_%d")
-    t_string = now.strftime("%H_%M_%S")
-    print("\n>> Time Stamp:", t_string, " <<")
-
-    # # Produce PAramater File
-    prm, param_file = GenSimParam(param_file, algorithm='EiM', **kwargs)  # save_param_file='DEL',
-
+def RunEiM(prm, experiment_loop=0):
 
     # # initialise DE class using settings object
-    de_obj = de(param_file)
+    DEobj = de(prm)  # pass in prm file
+
+    #
 
     loop = 0
-    for circuit_loop in range(prm['num_circuits']):  # generate new 'material' circuits
+    for system_loop in range(prm['num_systems']):  # generate new 'material' circuits
 
         for repetition_loop in range(prm['num_repetitions']):  # repetition on current 'material circuit'
 
-            print("\n-------------------------------------------------------------")
-            print("Main Loop number:", loop, "/", prm['num_circuits']*prm['num_repetitions']-1)
-            print("Material Circuit:", circuit_loop, "/", prm['num_circuits']-1, "Repetition:", repetition_loop, "/", prm['num_repetitions']-1)
+            print("\n----------------------------------------------------------------------")
+            print("Main Loop number:", loop, "/", prm['num_systems']*prm['num_repetitions']-1, " ( Material System:", system_loop, "/", prm['num_systems']-1, ", Repetition:", repetition_loop, "/", prm['num_repetitions']-1, ")")
 
             # Make directory for data to be saved
             if loop == 0:
-
-                # change saved name to make it more distinguishable
-                if experiment == 0:
-                    new_dir = "Results/%s/__%s__%s__%s__%s" % (d_string, t_string, prm['DE']['training_data'], prm['network']['model'], prm['algorithm'])
-                elif experiment == 1:
-                    new_dir = "Results/%s/__%s__%s__EXP_%s__%s" % (d_string, t_string, prm['DE']['training_data'], exp_name, prm['algorithm'])
-                os.makedirs(new_dir)
-                prm = ChangeSettings(param_file, SaveDir=new_dir)   # used in Resnet.py to save material models
-
-                with open(r'%s/Experiment_MetaData%s.yaml' % (new_dir, param_file), 'w') as sfile:
+                with open(r'%s/Experiment_MetaData.yaml' % (prm['SaveDir']), 'w') as sfile:
                     yaml.dump(prm, sfile)
 
             if prm['DE']['UseCustom_NewAttributeData'] == 1:
-                Load_NewWeighted_SaveTemp(prm['DE']['NewAttrDataDir'], circuit_loop, repetition_loop, prm['DE']['TestVerify'])
+                Load_NewWeighted_SaveTemp(prm['DE']['NewAttrDataDir'], system_loop, repetition_loop, prm['DE']['TestVerify'])
 
+            # # run DE with the new settings
+            DEobj.perform_de(system_loop, repetition_loop)
+            train_bFits, train_bYs, train_bErrFits, train_bVouts, train_bRLs = DEobj.train_bResult_unzipped
+            vali_bFits_RAW, vali_bYs, vali_bErrFits, vali_bVouts, vali_bRLs = DEobj.vali_bResult_unzipped
+            Global_bFits_RAW, Global_bYs, Global_bFits_err, Global_bVouts, Global_bRLs = DEobj.Gbest_bResult_unzipped
 
-            # run the object on the new settings
-            best_genome_list, mean_fit_list, std_fit_list, unzipped_best_results_list  = de_obj.perform_de(circuit_loop, repetition_loop)  # list the output yield vals
-            best_fit_list, best_responceY_list, best_err_fit_list, best_Vout_list = unzipped_best_results_list
+            # # Toggle the saved Global and valid pop fit saved, dependign on
+            # # what was used (Training fit not always equal to valid fit)
+            if prm['DE']['Gbest_fit'] == 'raw':
+                Global_bFits = Global_bFits_RAW
+                vali_bFits = vali_bFits_RAW
+            elif prm['DE']['Gbest_fit'] == 'error':
+                Global_bFits = Global_bFits_err
+                vali_bFits = vali_bErrFits
 
+            best_genome = DEobj.Gbest_bGenomes[-1]
+            best_RidgeLayer = Global_bRLs[-1]
+            train_bFit = train_bFits[-1]
+            best_Vout = Global_bVouts[-1]
 
+            if prm['DE']['batch_size'] == 0:
+                print("Final Training fitness:", train_bFit, " Using the best genome:", best_genome)
+                bGV_fit = 'na'
+            else:
+                bGV_fit = Global_bFits[-1]
+                bGV_fit = round(bGV_fit, 3)
+                print("Final Global Validation fitness:", bGV_fit, " Using the best genome:", best_genome)
 
+            #
 
-            best_genome = best_genome_list[-1]
-            best_fitness = best_fit_list[-1]
-            best_Vout = best_Vout_list[-1]
-            print("Best fitness:", best_fitness, " Using the best genome:", best_genome)
-
-            scaled_data = preprocessing.scale(best_Vout)
-            pca = PCA() # create a PCA object
-            pca.fit(scaled_data) # do the math
-            eigenvalues_raw = pca.explained_variance_
-            eigenvalues = eigenvalues_raw/np.max(eigenvalues_raw)
-            if np.max(eigenvalues_raw) == 0:
-                print("Max eigen val is zero? Eigenvalues:", eigenvalues_raw)
-            max_entropy = np.log(len(eigenvalues_raw))
-            entropy = 0
-            for l in eigenvalues:
-                entropy = entropy - (l*np.log(l))
+            entropy, max_entropy = PCA_entropy(best_Vout)
             print("Raw Output Voltages (PCA) Entropy=%f/%f (larger is better)" % (entropy, max_entropy))
 
             # add in zeros and copy best genome to ensure one loop fills up
             # itteration number sized list
-            best_fit_list = list(best_fit_list)
-            if len(best_fit_list) < prm['DE']['its']+1:  # +1 is to include initial pop fitness
-                location = len(best_fit_list)
+            """train_bFits = list(train_bFits)
+            if len(train_bFits) < prm['DE']['epochs']:  # +1 is to include initial pop fitness
+                location = len(train_bFits)
                 while True:
-                    best_fit_list.append(best_fitness)
-                    best_genome_list.append(best_genome)
-                    mean_fit_list.append(np.nan)
-                    std_fit_list.append(np.nan)
+                    train_bFits.append(train_bFit)
+                    DEobj.train_bGenomes.append(best_genome)
+                    DEobj.train_meanFits.append(np.nan)
+                    DEobj.train_stdFits.append(np.nan)
 
                     location = location + 1
 
-                    if location >= prm['DE']['its']+1:
-                        break
-
-            fig_evole = plt.figure(tight_layout=False)
-            axes_evole = fig_evole.add_axes([0.125, 0.125, 0.75, 0.75])
-            axes_evole.plot(best_fit_list)  # NOTE: This includes the best fitness of original population
-            axes_evole.set_title('Best fitness variation over the evolution period (no Verification)\nOutput (PCA) entropy=%.3f/%.3f' % (entropy, max_entropy))
-            axes_evole.set_xlabel('Iteration')
-            axes_evole.set_ylabel('Best Fitness')
+                    if location >= prm['DE']['epochs']:
+                        break"""
 
             #
 
             #
 
-            # format best_genome_list for hdf5
-            formatted_genome_list = []
-            for genome in best_genome_list:
-                formatted_genome_list.append(np.concatenate(np.asarray(genome)))
-            formatted_genome_array = np.asarray(formatted_genome_list).astype(np.float64)
-            #print("formatted_genome", formatted_genome_array)
+            # format DEobj.train_bGenomes for hdf5
+            formatted_bTGenomes = []
+            for genome in DEobj.train_bGenomes:
+                formatted_bTGenomes.append(np.concatenate(np.asarray(genome)))
+            formatted_bTGenomes = np.asarray(formatted_bTGenomes).astype(np.float64)
+
+            formatted_GbGenomes = []
+            for genome in DEobj.Gbest_bGenomes:
+                formatted_GbGenomes.append(np.concatenate(np.asarray(genome)))
+            formatted_GbGenomes = np.asarray(formatted_GbGenomes).astype(np.float64)
 
             # # # # # # # # # # # #
             # # write data to DE hdf5 group
-            location = "%s/data.hdf5" % (new_dir)
+            location = "%s/data.hdf5" % (prm['SaveDir'])
             with h5py.File(location, 'a') as hdf:
-                data_group = hdf.create_group("%d_rep%d" % (circuit_loop, repetition_loop))
+                data_group = hdf.create_group("%d_rep%d" % (system_loop, repetition_loop))
                 G = data_group.create_group('DE_data')  # create group
-                G.create_dataset('fitness', data=best_fit_list)
-                G.create_dataset('best_genome', data=formatted_genome_array)
                 G.create_dataset('gen_grouping', data=prm['genome']['grouping'])
-                G.create_dataset('pop_mean_fit', data=mean_fit_list)
-                G.create_dataset('pop_std_fit', data=std_fit_list)
-                G.create_dataset('Y_data', data=best_responceY_list[-1])
-                G.create_dataset('best_Vout', data=best_Vout)
-                G.create_dataset('max_entropy', data=max_entropy)
-                G.create_dataset('OutputLayer_threshold', data=np.nan)
+
+                G_train = G.create_group('training')  # create group
+                G_train.create_dataset('best_fits', data=train_bFits)
+                G_train.create_dataset('best_genomes', data=formatted_bTGenomes)
+                G_train.create_dataset('pop_mean_fits', data=DEobj.train_meanFits)
+                G_train.create_dataset('pop_std_fits', data=DEobj.train_stdFits)
+                G_train.create_dataset('best_Y_data', data=train_bYs[-1])
+                G_train.create_dataset('best_Vout', data=best_Vout)
+                G_train.create_dataset('max_entropy', data=max_entropy)
+                G_train.create_dataset('best_entropy', data=entropy)
+                G_train.create_dataset('Ncomps', data=DEobj.batch_Ncomps)
+
+                G_best = G.create_group('global_best')  # create group
+                Gbest_genome = G_best.create_dataset('best_genomes', data=formatted_GbGenomes)
+                if prm['DE']['batch_size'] == 0:
+                    Gbest_genome.attrs['type'] = 'bTrain'
+                else:
+                    Gbest_genome.attrs['type'] = 'bVali'
+
+                Gbest_fit = G_best.create_dataset('fits', data=Global_bFits)
+                G_best.create_dataset('Ncomps', data=DEobj.epoch_Ncomps)
+                G_best.create_dataset('error_fits', data=Global_bFits_err)
+                if prm['DE']['Gbest_fit'] == 'raw':
+                    Gbest_fit.attrs['type'] = 'raw'
+                elif prm['DE']['Gbest_fit'] == 'error':
+                    Gbest_fit.attrs['type'] = 'error'
+                #
+
+                if prm['DE']['batch_size'] != 0:
+                    G_valid = G.create_group('validation')  # create group
+                    G_valid.create_dataset('non_global_fits', data=vali_bFits)
+                    G_valid.create_dataset('fits', data=Global_bFits)
+                    G_valid.create_dataset('num_batches', data=DEobj.lobj.num_batches)
+                    G_valid.create_dataset('batch_size_list', data=DEobj.lobj.batch_size)
+                    G_valid.create_dataset('Ncomps', data=DEobj.epoch_Ncomps)
+                #
+
+                G_ridge = G.create_group('ridge')  # create group
+                if prm['op_layer'] == 'ridge':
+                    best_weights, best_bias, Threshold = best_RidgeLayer
+                    G_ridge.create_dataset('weights', data=best_weights)
+                    G_ridge.create_dataset('bias', data=best_bias)
+                    G_ridge.create_dataset('threshold', data=Threshold)
+                else:
+                    G_ridge.create_dataset('threshold', data=np.nan)
+
+
 
             ###################################################################
-            # Perform Verification on trained model
-            # For each circuit and each repetition
+            # Perform Test Dataset on trained model
             ###################################################################
-            if prm['DE']['TestVerify'] == 1:
-                scheme_fitness, rY, Verification_fitness, Vout = de_obj.cap.solve_processor(best_genome, cir=circuit_loop, rep=repetition_loop, the_data='veri')
+            txdata, tydata = DEobj.lobj.fetch_data('test')
+            #results, GenList_results = self.cap.run_processor(pop_denorm, syst, rep, xdata, ydata, ret_str='both', the_data='train')
+            scheme_fitness, rY, TestFit, Vout = DEobj.cap.run_processor(best_genome, syst=system_loop, rep=repetition_loop,
+                                                                         input_data=txdata, target_output=tydata,
+                                                                         ridge_layer=best_RidgeLayer, the_data='test')
+            noise = 5
+            ntxdata, ntydata = DEobj.lobj.fetch_data('test', noise=noise, noise_type='per')
+            noise_scheme_fitness, noise_rY, noise_Veri_fit, noise_Vout = DEobj.cap.run_processor(best_genome, syst=system_loop, rep=repetition_loop,
+                                                                                                  input_data=ntxdata, target_output=ntydata,
+                                                                                                  ridge_layer=best_RidgeLayer, the_data='test')
 
-                # anomoly detection !
-                if best_fitness <= 0.1 and scheme_fitness == 0.5:
-                    raise ValueError("Anomaly Detected!")
+            print("Test Error Fit =", TestFit, ", Test %s Per noise Fit =" % (noise), noise_Veri_fit, ", Scheme fitness:", scheme_fitness)
 
-                scaled_data = preprocessing.scale(Vout)
-                pca = PCA() # create a PCA object
-                pca.fit(scaled_data) # do the math
-                eigenvalues_raw = pca.explained_variance_
-                eigenvalues = eigenvalues_raw/np.max(eigenvalues_raw)
-                entropyVeri = 0
-                for landa in eigenvalues:
-                    entropyVeri = entropyVeri - (landa*np.log(landa))
+            # anomoly detection !
 
-                # # # # # # # # # # # #
-                # # write data to DE hdf5 group
-                location = "%s/data.hdf5" % (new_dir)
-                with h5py.File(location, 'a') as hdf:
-                    hdf.create_dataset("%d_rep%d/DE_data/veri_fit" % (circuit_loop, repetition_loop), data=Verification_fitness)
-                    hdf.create_dataset("%d_rep%d/DE_data/veri_scheme_fit" % (circuit_loop, repetition_loop), data=scheme_fitness)
-                    hdf.create_dataset("%d_rep%d/DE_data/veri_entropy" % (circuit_loop, repetition_loop), data=entropyVeri)
-                    hdf.create_dataset("%d_rep%d/DE_data/veri_Vout" % (circuit_loop, repetition_loop), data=Vout)
+            if prm['DE']['batch_size'] == 0:
+                best_f = train_bErrFits[-1] # train_bFit
+            else:
+                best_f = Global_bFits_err[-1] # Global_bFits_RAW[-1]
 
-                new_title = 'Best fitness variation over the evolution period\n Verification (error) Fit = %.4f, Scheme (%s) Fit = %.4f\nOutput (PCA) entropy=%.3f/%.3f' % (Verification_fitness, prm['DE']['FitScheme'], scheme_fitness, entropy, max_entropy)
-                axes_evole.set_title(new_title)
+            # # Check errors for anomolus result
+            if best_f <= 0.1 and TestFit > 0.5:
+                raise ValueError("Anomaly Detected!")
 
-            # Save figure for current loops best fitness variation
-            fig0_path = "%s/%d_Rep%d_FIG_FitvIt.png" % (new_dir, circuit_loop, repetition_loop)
-            if prm['DE']['save_fitvit'] == 1:
-                fig_evole.savefig(fig0_path, dpi=300)
-            plt.close(fig_evole)
+            # calc PCA entropy
+            test_entropy, max_entropy = PCA_entropy(Vout)
 
+            # # # # # # # # # # # #
+            # # write data to DE hdf5 group
+            location = "%s/data.hdf5" % (prm['SaveDir'])
+            with h5py.File(location, 'a') as hdf:
+                hdf.create_dataset("%d_rep%d/DE_data/test/fit" % (system_loop, repetition_loop), data=TestFit)
+                hdf.create_dataset("%d_rep%d/DE_data/test/scheme_fit" % (system_loop, repetition_loop), data=scheme_fitness)
+                hdf.create_dataset("%d_rep%d/DE_data/test/entropy" % (system_loop, repetition_loop), data=test_entropy)
+                hdf.create_dataset("%d_rep%d/DE_data/test/Vout" % (system_loop, repetition_loop), data=Vout)
+
+                hdf.create_dataset("%d_rep%d/DE_data/noisy_test/fit" % (system_loop, repetition_loop), data=noise_Veri_fit)
+                hdf.create_dataset("%d_rep%d/DE_data/noisy_test/scheme_fit" % (system_loop, repetition_loop), data=noise_scheme_fitness)
+                hdf.create_dataset("%d_rep%d/DE_data/noisy_test/Vout" % (system_loop, repetition_loop), data=noise_Vout)
+                hdf.create_dataset("%d_rep%d/DE_data/noisy_test/noise_per" % (system_loop, repetition_loop), data=noise)
+
+                noise_list = np.arange(0, 10.5, 0.5)
+                hdf.create_dataset("%d_rep%d/DE_data/noisy_test/noise_per_list" % (system_loop, repetition_loop), data=noise_list)
+                for n in noise_list:
+                    ntxdata, ntydata = DEobj.lobj.fetch_data('test', noise=n, noise_type='per')
+                    noise_scheme_fitness, noise_rY, noise_err_fit, noise_Vout = DEobj.cap.run_processor(best_genome, syst=system_loop, rep=repetition_loop,
+                                                                                                          input_data=ntxdata, target_output=ntydata,
+                                                                                                          ridge_layer=best_RidgeLayer, the_data='test')
+                    hdf.create_dataset("%d_rep%d/DE_data/noisy_test/%s_per/fit" % (system_loop, repetition_loop, n), data=noise_err_fit)
+                    hdf.create_dataset("%d_rep%d/DE_data/noisy_test/%s_per/scheme_fit" % (system_loop, repetition_loop, n), data=noise_scheme_fitness)
+
+                    hdf.create_dataset("%d_rep%d/DE_data/noisy_test/%s_per/fit_change" % (system_loop, repetition_loop, n), data=noise_err_fit-TestFit)
+                    hdf.create_dataset("%d_rep%d/DE_data/noisy_test/%s_per/scheme_fit_change" % (system_loop, repetition_loop, n), data=noise_scheme_fitness-scheme_fitness)
+
+                # # Create uniform 2d inputs, and plot outputs
+                if prm['DE']['num_classes'] == 2:
+                    pClass, rY, Vout = DEobj.cap.run_processor(best_genome, syst=system_loop, rep=repetition_loop,
+                                                               input_data=txdata, target_output='na',
+                                                               ridge_layer=best_RidgeLayer, the_data='test')
+                    hdf.create_dataset("%d_rep%d/DE_data/test_predicted/class" % (system_loop, repetition_loop), data=pClass)
+                    hdf.create_dataset("%d_rep%d/DE_data/test_predicted/rY" % (system_loop, repetition_loop), data=rY)
+                    hdf.create_dataset("%d_rep%d/DE_data/test_predicted/real_class" % (system_loop, repetition_loop), data=tydata)
+
+
+            #
+
+            FitEvo('Epoch', prm, system_loop, repetition_loop, train_bFits, TestFit, Global_bFits, DEobj.lobj.num_batches, vali_bFits, DEobj.batch_Ncomps, DEobj.epoch_Ncomps, DEobj.lobj.num_batches)
+            
+            # ####################################################
+            # Check the saved params generate the same results
+            # Note: Can't check if windowing with epoch start re-evaluation
+            # ####################################################
+            """if 'window' not in prm['DE']['batch_scheme']:
+                bidx, xdata, ydata = DEobj.lobj.prev_train_batch[1]
+                print("\n bidx", bidx)
+                #results, GenList_results = self.cap.run_processor(pop_denorm, syst, rep, xdata, ydata, ret_str='both', the_data='train')
+                ff, ry, ef, vo = DEobj.cap.run_processor(DEobj.train_bGenomes[-1], syst=system_loop, rep=repetition_loop,
+                                                            input_data=xdata, target_output=ydata,
+                                                            ridge_layer=train_bRLs[-1], the_data='train')
+                #
+                if train_bFit != ff and 'Kmean' not in prm['DE']['FitScheme']:
+                    e = "ReRun best genome on training data gets wrong fitness: %f (Best Fit = %f)" % (ff, train_bFit)
+                    raise ValueError(e)"""
+
+            if prm['DE']['batch_size'] != 0:
+                Vxdata, Vydata = DEobj.lobj.get_data('validation', iterate=0)
+                ff, ry, ef, vo = DEobj.cap.run_processor(best_genome, syst=system_loop, rep=repetition_loop,
+                                                            input_data=Vxdata, target_output=Vydata,
+                                                            ridge_layer=best_RidgeLayer, the_data='validation')
+                #
+                if Global_bFits_RAW[-1] != ff and 'Kmean' not in prm['DE']['FitScheme']:
+                    e = "ReRun best genome on training data gets wrong fitness: %f (Best Fit = %f)" % (ff, Global_bFits_RAW[-1])
+                    raise ValueError(e)
+            else:
+                bidx, xdata, ydata = DEobj.lobj.prev_train_batch[1]
+                ff, ry, ef, vo = DEobj.cap.run_processor(DEobj.train_bGenomes[-1], syst=system_loop, rep=repetition_loop,
+                                                            input_data=xdata, target_output=ydata,
+                                                            ridge_layer=train_bRLs[-1], the_data='train')
+                #
+
+                if np.around(train_bFit, 6) != np.around(ff, 6) and 'Kmean' not in prm['DE']['FitScheme']:
+                    e = "ReRun best genome on training data gets wrong fitness: %f (Best Fit = %f)" % (ff, train_bFit)
+                    print(ff, train_bFit)
+                    print(np.around(train_bFit, 6), np.around(ff, 6))
+                    raise ValueError(e)
             #
 
             #
@@ -238,110 +332,50 @@ def RunEiM(param_file='',
             ###################################################################
             # Print material graphs
             ###################################################################
-            if prm['mg']['plotMG'] == 1 and prm['network']['num_input'] == 2:
-                MG_obj = materialgraphs(circuit_loop, repetition_loop, param_file=param_file)
-                MG_obj.MG(prm['mg']['plot_defualt'], [best_genome, best_fitness])
+            if prm['mg']['plotMG'] == 1 and prm['network']['num_input'] == 2 and prm['DE']['IntpScheme'] != 'raw':
+                MG_obj = materialgraphs(system_loop, repetition_loop,  DEobj.lobj, prm)
+                MG_obj.MG([best_genome, train_bFit, Global_bFits[-1], TestFit], obj_RidgeLayer=best_RidgeLayer)
 
-                if prm['mg']['MG_vary_Vconfig'] == 1:
-                    if prm['network']['num_config'] <= 2:
-                        MG_obj.MG_VaryConfig()
-                    elif prm['network']['num_config'] == 3:
-                        MG_obj.MG_VaryConfig3()
-                    else:
-                        print("Too many config inputs to print 2d MG map!")
+                MG_obj.MG_VaryConfig()
+                MG_obj.MG_VaryConfig3()
 
-                if prm['mg']['MG_vary_PermConfig'] == 1:
-                    selected_OW = 0  # don't randomly vary OW
-                    MG_obj.MG_VaryPerm(OutWeight=selected_OW)
+                MG_obj.MG_VaryPerm(OutWeight=0)  # selected_OW=0 --> don't randomly vary OW
 
-                if prm['mg']['MG_vary_InWeight'] == 1:
-                    MG_obj.MG_VaryInWeights(assending=1)
+                MG_obj.MG_VaryInWeights(assending=1)  # 0=fixed, 1=rotating, 2=zooming
+                MG_obj.MG_VaryInWeightsAni()
+                MG_obj.MG_VaryLargeInWeightsAni()
 
-                if prm['mg']['MG_vary_OutWeight'] == 1:
-                    MG_obj.MG_VaryOutWeights(assending=1)
+                MG_obj.MG_VaryOutWeights(assending=1)  # 0=fixed, 1=rotating, 2=zooming
+                MG_obj.MG_VaryOutWeightsAni()
+                MG_obj.MG_VaryLargeOutWeightsAni()
 
-                if prm['mg']['MG_VaryInWeightsAni'] == 1:
-                    MG_obj.MG_VaryInWeightsAni()
-
-                if prm['mg']['MG_VaryOutWeightsAni'] == 1:
-                    MG_obj.MG_VaryOutWeightsAni()
-
-                if prm['mg']['MG_VaryLargeOutWeightsAni'] == 1:
-                    MG_obj.MG_VaryLargeOutWeightsAni()
-
-                if prm['mg']['MG_VaryLargeInWeightsAni'] == 1:
-                    MG_obj.MG_VaryLargeInWeightsAni()
+                MG_obj.MG_VaryInBias()
+                MG_obj.MG_VaryOutputBias()
 
             else:
                 MG_obj = 'na'
 
             # # # ########
             # If clustering
+            data_X, data_y = DEobj.lobj.get_data(the_data='train', iterate=0)  # load all data
             if 'Kmean' in prm['DE']['IntpScheme'] and 'Kmean' not in prm['DE']['FitScheme']:
 
-                data_X, data_y = Load_Data('train', prm)
-
-                model = cl.KMeans(prm['DE']['num_classes'])
-                model.fit(data_X)
-                yhat_og = model.predict(data_X) # assign a cluster to each example
-                og_com = met.completeness_score(data_y, yhat_og)
-
-                fig, ax = plt.subplots(ncols=3, nrows=1, sharey=True, sharex=True)
-
-                ax[0].scatter(data_X[:,0], data_X[:,1], c=data_y)
-                ax[0].set_title('OG Data')
-                ax[0].set_xlabel('a1')
-                ax[0].set_ylabel('a2')
-                ax[0].set_aspect('equal', adjustable='box')
-
-                ax[1].scatter(data_X[:,0], data_X[:,1], c=yhat_og)
-                ax[1].set_title('Clusters On OG')
-                ax[1].set_xlabel('a1')
-                ax[1].set_aspect('equal', adjustable='box')
-
-                ax[2].scatter(data_X[:,0], data_X[:,1], c=best_responceY_list[-1])
-                ax[2].set_title('Predicted Clusters')
-                ax[2].set_xlabel('a1')
-                ax[2].set_aspect('equal', adjustable='box')
-
-                fig.suptitle('IntpScheme: %s, FitScheme: %s.' % (prm['DE']['IntpScheme'], prm['DE']['FitScheme']))
-
-
-                fig0_path = "%s/%d_Rep%d_FIG_Cluster.png" % (new_dir, circuit_loop, repetition_loop)
-                fig.savefig(fig0_path, dpi=300)
-                plt.close(fig)
+                cluster2d(prm, system_loop, repetition_loop, DEobj.lobj, 'train', train_bYs)
 
             elif 'Kmean' not in prm['DE']['IntpScheme'] and 'Kmean' in prm['DE']['FitScheme']:
-                rY = best_responceY_list[-1]
 
-                if len(rY[0, :]) == 2:
+                plot_TransformedOutput(prm, system_loop, repetition_loop, DEobj.lobj, 'train', train_bYs)
+                perfomance_comparison(prm, system_loop, repetition_loop, DEobj.lobj, train_bYs[-1], 'train')
 
-                    data_X, data_y = Load_Data('train', prm)
+            #plot_TransformedOutput(prm, system_loop, repetition_loop, DEobj.lobj, 'train', train_bYs)
 
-                    fig, ax = plt.subplots()
-                    ax.scatter(rY[:,0], rY[:,1], c=data_y)
-                    ax.set_title('Output')
-                    ax.set_xlabel('$op_1$')
-                    ax.set_ylabel('$op_2$')
-                    fig.suptitle('IntpScheme: %s, FitScheme: %s.' % (prm['DE']['IntpScheme'], prm['DE']['FitScheme']))
-                    fig0_path = "%s/%d_Rep%d_FIG_TransformedOutput.png" % (new_dir, circuit_loop, repetition_loop)
-                    fig.savefig(fig0_path, dpi=300)
-                    plt.close(fig)
+            #plot_InToOps(prm, system_loop, repetition_loop, other_InNodes='float')
+            #plot_InToOps(prm, system_loop, repetition_loop, other_InNodes=0)
+            #plot_InToOps(prm, system_loop, repetition_loop, other_InNodes=1)
 
-                elif len(rY[0, :]) == 1:
-
-                    data_X, data_y = Load_Data('train', prm)
-
-                    fig, ax = plt.subplots()
-                    ax.scatter(np.arange(len(rY)), rY, c=data_y)
-                    ax.set_title('Output')
-                    ax.set_xlabel('instance')
-                    ax.set_ylabel('$op_1$')
-                    fig.suptitle('IntpScheme: %s, FitScheme: %s.' % (prm['DE']['IntpScheme'], prm['DE']['FitScheme']))
-                    fig0_path = "%s/%d_Rep%d_FIG_TransformedOutput.png" % (new_dir, circuit_loop, repetition_loop)
-                    fig.savefig(fig0_path, dpi=300)
-                    plt.close(fig)
-
+            #plot_TransConductance(prm, system_loop, repetition_loop, StaticVin2=1, ShuntR=0.1)
+            #plot_TransConductance(prm, system_loop, repetition_loop, StaticVin2=1, ShuntR=1) # kohm
+            #plot_TransConductance(prm, system_loop, repetition_loop, StaticVin2=1, ShuntR=70) # kohm
 
             # increment loop and clean up
             gc.collect()
@@ -349,58 +383,55 @@ def RunEiM(param_file='',
 
         # '''
 
-    #########################################################################
-    # Save some data about the experiment to text
-    #########################################################################
-    now = datetime.now()
-    d_string_fin = now.strftime("%d_%m_%Y")
-    t_string_fin = now.strftime("%H_%M_%S")
-    Deets = save_param(prm, experiment, now)
     #
 
     # ########################################################################
-    # Create a new file containing the experiment path, file labled with
-    # simulation (Network) model, and number of runs
+    # Create a new file containing the experiment path,
+    # Save some data about the experiment to text
     # ########################################################################:
 
-    if experiment == 1:
+    if prm['experiment']['active'] == 1:
+
         # if the new folder does not yet exist, create it
-        if not os.path.exists(experiment_file):
-            os.makedirs(experiment_file)
+        if not os.path.exists(prm['experiment']['file']):
+            os.makedirs(prm['experiment']['file'])
+
         # Save the deets under a descriptive name
-        path_Experiment_List = '%s/ExpLoop%s.txt' % (experiment_file, str(experiment_loop))
-        file2 = open(path_Experiment_List, "w")
-        file2.write(Deets)
-        file2.close()
+        with open(r'%s/ExpLoop%s.yaml' % (prm['experiment']['file'], str(experiment_loop)), 'w') as exp_file:
+            yaml.dump(prm, exp_file)
 
     # ########################################################################
     # Run Analysis
     # ########################################################################
     blockPrint()
-    if prm['num_circuits']*prm['num_repetitions'] > 1:
-        sel_dict = {'plt_mean':1,'plt_std':1,'plt_finalveri':1,'plt_popmean':1,'plt_box':1,'plt_hist':1}
+    if prm['num_systems']*prm['num_repetitions'] > 1:
+        sel_dict = {'plt_mean':1,'plt_accuracy':1,'plt_std':1,'plt_finalveri':1,'plt_popmean':1,'plt_box':1,'plt_hist':1,'plt_genes':1, 'plt_rT':1}
     else:
-        sel_dict = {'plt_mean':0,'plt_std':0,'plt_finalveri':0,'plt_popmean':1,'plt_box':0,'plt_hist':0}
+        sel_dict = {'plt_mean':0,'plt_accuracy':0,'plt_std':0,'plt_finalveri':0,'plt_popmean':1,'plt_box':0,'plt_hist':0,'plt_genes':0, 'plt_rT':1}
 
     print("\nProducing analysis graphs...")
-    obj_anly = analysis(new_dir, format='png')
+    obj_anly = analysis(prm['SaveDir'], format='png')
 
-    obj_anly.Plt_basic(sel_dict=sel_dict, Save_NotShow=1, fill=1, ExpErrors=0, StandardError=1)
-    obj_anly.Plt__ani(Save_NotShow=1, PlotOnly='all')
+    obj_anly.Plt_basic(sel_dict=sel_dict, Save_NotShow=1, fill=1, ExpErrors=1, StandardError=1)
+    obj_anly.Plt__ani(Save_NotShow=1, PlotOnly='all', format='gif')
     obj_anly.Plt_mg(Save_NotShow=1, Bgeno=1, Dgeno=1, VC=1, VP=1,
                     VoW=1, ViW=1, VoW_ani=1, ViW_ani=1, VoiW_ani=1, VloW_ani=1, VliW_ani=1,
                     titles='on')
     enablePrint()
 
-    # # Clean Up # #
-    print("\nfin at:", t_string_fin)
+    if prm['DE']['epochs'] == 0:
+        rcp_test = rc_plotter(prm['SaveDir'], 'test')
+        rcp_test.FitvH(1)
+        rcp_test.FitvStdVo(1)
+        rcp_test.HvStdVo(1)
+
+    #
+
+    # # Clean Up
+    print("\nfin at:", datetime.now().strftime("%H_%M_%S"))
     plt.close('all')
 
-    # # delete temp param files
-    os.remove('Temp_Param%s.yaml' % (str(param_file)))
-
-    # Return the directory
-    return new_dir
+    return
 
 #
 
@@ -417,20 +448,101 @@ def RunEiM(param_file='',
 
 if __name__ == "__main__":
 
-    # Run Script
-    #mp.set_start_method('fork')
-    ReUse_dir = 'na'
+    # load Template Paramaters
+    tprm = LoadPrm(param_file='')
 
-    ReUse_dir = 'Results/2020_11_11/__10_41_27__con2DDS__real_D_RN__EiM'
+    # Alter Prms
+    #tprm['ReUse_dir'] = 'Results/2021_03_19/__14_56_15__con2DDS__D_RN__RidgeEiM'
+    #tprm['ReUse_dir'] = 'Results/15Materials/DRN_2I_2C_3O'
+    #tprm['DE']['epochs'] = 20
+    #tprm['DE']['IntpScheme'] = 'Ridge'  # 'Ridge', 'pn_binary'
+    #tprm['ReUse_dir'] = 'Results/2021_04_14/__16_46_57__sc2DDS__D_RN__EiM'
+    #tprm['network']['num_output'] = 1
 
-    RunEiM(num_circuits=4, num_repetitions=1,
-           model='D_RN',  # R_RN, D_RN, NL_RN, NL_uRN, custom_RN
+    # Gen final prm file
+    prm = GenSimParam(param_file=tprm)  # Produce PAramater File
+
+    # Run EiM
+    RunEiM(prm)
+
+    #
+    #
+
+    """
+    # Gen final prm file
+    #tprm['DE']['batch_size'] = 0.005
+    #tprm['DE']['IntpScheme'] = 'Ridge'
+    #tprm['DE']['FitScheme'] = 'BinCrossEntropy'
+    tprm['DE']['mut_scheme'] = 'rand1'
+    tprm['ReUse_dir'] = prm['SaveDir']
+
+    # Run EiM
+    prm = GenSimParam(param_file=tprm)  # Produce PAramater File
+    RunEiM(prm)
+    #"""
+
+    #
+
+    """
+    tprm['DE']['IntpScheme'] = 'pn_binary'
+    tprm['DE']['epochs'] = 100
+    prm = GenSimParam(param_file=tprm)  # Produce PAramater File
+    RunEiM(prm)
+    #"""
+
+    #
+
+    #
+
+    """
+    tprm = LoadPrm(param_file='')
+    tprm['ReUse_dir'] = 'Results/2021_03_16/__10_28_32__con2DDS__D_RN__EiM'
+    tprm['DE']['epochs'] = 10
+    tprm['DE']['mut_scheme'] = 'best1'
+    prm = GenSimParam(param_file=tprm)  # Produce PAramater File
+    RunEiM(prm)
+    # """
+
+    """
+    RunEiM(num_systems=1, num_repetitions=1,
+           model='R_RN',  # R_RN, D_RN, NL_RN, NL_uRN, custom_RN
+           #mut=['DE', 10],
+           batch_size=0, epochs=20,
            #IntpScheme='raw',
-           #FitScheme='KmeanDist',
+           #FitScheme='SpectralDist',  # 'KmeanDist',
            #num_readout_nodes=2, OutWeight_gene=1, IntpScheme='HOW',
-           #ReUse_dir=ReUse_dir,
+           ReUse_dir=dir,
+           #IntpScheme='HOW', num_readout_nodes='na', training_data='iris', num_input=4, num_output=3,
+           num_processors=11)
+
+    #"""
+
+    """RunEiM(num_systems=3, num_repetitions=1,
+           model='D_RN',  # R_RN, D_RN, NL_RN, NL_uRN, custom_RN
+           IntpScheme='raw',
+           FitScheme='KmeanDist',
+           num_readout_nodes=2,
+           training_data='iris', num_input=4, num_output=6, num_config=3,
+           num_processors=10)"""
+
+    """
+    dir = RunEiM(num_systems=1, num_repetitions=1,
+           model='D_RN',  # R_RN, D_RN, NL_RN, NL_uRN, custom_RN
+           IntpScheme='raw',
+           FitScheme='KmeanDist',
+           num_readout_nodes=2,
+           training_data='iris', num_input=4, num_output=6, num_config=3,
            num_processors=10)
 
+    RunEiM(num_systems=1, num_repetitions=1,
+           model='D_RN',  # R_RN, D_RN, NL_RN, NL_uRN, custom_RN
+           IntpScheme='raw',
+           FitScheme='KmeanSpace',
+           num_readout_nodes=2,
+           training_data='iris', num_input=4, num_output=6, num_config=3,
+           ReUse_dir=dir,
+           num_processors=10)
+    # """
 #
 
 # fin

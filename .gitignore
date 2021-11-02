@@ -4,10 +4,7 @@ __pycache__/
 *$py.class
 
 # Custom
-Results
-CustomSave
-Experiment_List
-Experiment_List_w
+Graphs
 Temp_Param*.yaml
 test*.py
 z_test*.py
