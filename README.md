@@ -1,3 +1,6 @@
+
+![](Results/DemoAni.gif)
+
 # EiM Material Proxy
 This code consists of an EiM simulation that uses differential evolution (DE).
 The material is replaced with a SPICE based model, produced by integrating NGSpice with Python via PySpice.
