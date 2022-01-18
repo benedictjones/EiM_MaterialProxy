@@ -6,7 +6,7 @@ This code consists of an EiM simulation that uses differential evolution (DE).
 The material is replaced with a SPICE based model, produced by integrating NGSpice with Python via PySpice.
 This supports the paper: \
 **Title**: Towards Intelligently Designed Evolvable Processors \
-**Authors**: Benedict Jones, John Chouard, Bianca C.C. Branco, Eléonore G.B. Vissol-Gaudin, Christopher Pearson, Dagou A. Zeze, Michael C. Petty, Christopher Groves
+**Authors**: 
 
 _Please note that this repository is a work in progress._
 
